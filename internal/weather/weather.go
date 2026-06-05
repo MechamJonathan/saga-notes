@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"almanac/internal/config"
+	"saga-notes/internal/config"
 )
 
 // Weather is a normalized snapshot of current conditions.

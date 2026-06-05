@@ -68,7 +68,7 @@ func (m model) View() string {
 		return "loading…"
 	}
 
-	header := renderHeader(m.styles, m.now, m.steps, m.stepsKnown)
+	header := renderHeader(m.styles, m.now)
 	footer := m.footerLine()
 
 	leftOuterW, rightOuterW, stacked := m.panelOuterWidths()
@@ -107,11 +107,8 @@ func (m model) panelStyle(f focus) lipgloss.Style {
 	return m.styles.PanelBlur
 }
 
-// footerLine renders either the steps-entry prompt or the key hints.
+// footerLine renders the key hints.
 func (m model) footerLine() string {
-	if m.editingSteps {
-		return m.styles.Footer.Render(m.stepsInput.View() + "  (enter save · esc cancel)")
-	}
 	return renderFooter(m.styles, m)
 }
 

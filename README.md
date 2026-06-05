@@ -1,19 +1,19 @@
-# almanac
+# Saga Notes
 
 A terminal dashboard styled like a two-page journal. The left page shows an
 **at-a-glance** view — a small calendar, the weather, and your daily goals — and
 the right page is for **writing** free-form notes. A header carries the date, a
-live clock, the moon phase, and your step count.
+live clock, and the moon phase.
 
 Built with Go and the [Charm](https://charm.sh) stack (BubbleTea, Lipgloss,
 Bubbles). Single binary, local-first, no database.
 
 ```
-almanac  ·  Thu, Jun 4  ·  06:14  ·  🌖 Waning Gibbous  ·  👟 7,432/10k
+Saga Notes  ·  Thu, Jun 4  ·  06:14  ·  🌖 Waning Gibbous
 ╭──────────────────────────────╮╭──────────────────────────────────────╮
 │  📅 JUNE 2026                 ││  ✎ NOTES  Thu, Jun 4                   │
 │  Su Mo Tu We Th Fr Sa         ││  ────────────────────────────────────  │
-│      1  2  3 [4] 5  6         ││  Morning pages: ship the almanac.      │
+│      1  2  3 [4] 5  6         ││  Morning pages: ship it.               │
 │   7  8  9 10 11 12 13         ││                                        │
 │  ...                          ││  ❝ The secret of getting ahead is      │
 │  ☀ WEATHER                    ││     getting started.                   │
@@ -29,8 +29,8 @@ tab notes · ↑↓ move · space toggle · a add · e edit · [ ] day · w refr
 ## Install & run
 
 ```sh
-go build -o almanac .
-./almanac
+go build -o saga .
+./saga
 ```
 
 Below ~80 columns the two pages stack vertically.
@@ -46,19 +46,18 @@ Below ~80 columns the two pages stack vertically.
 | `e`       | edit the selected goal (Goals) / open `$EDITOR` (Notes) |
 | `d`       | delete the selected goal                            |
 | `i`       | write a note inline (Notes focused; `esc` saves)    |
-| `s`       | set today's step count (manual source)              |
 | `[` `]`   | previous / next day                                 |
-| `w`       | refresh weather & steps                             |
+| `w`       | refresh weather                                     |
 | `q`       | quit                                                |
 
 ## Configuration
 
 On first run, a default config is written to:
 
-- macOS: `~/Library/Application Support/almanac/config.toml`
-- Linux: `~/.config/almanac/config.toml`
+- macOS: `~/Library/Application Support/saga-notes/config.toml`
+- Linux: `~/.config/saga-notes/config.toml`
 
-Print the exact path with `almanac --config`.
+Print the exact path with `saga --config`.
 
 ```toml
 accent = "#4ec9b0"
@@ -69,11 +68,6 @@ city    = "Salt Lake City"
 lat     = 40.7608
 lon     = -111.8910
 units   = "imperial"  # "imperial" (°F) or "metric" (°C)
-
-[steps]
-source = "manual"     # "manual", "autoexport", or "appleexport"
-path   = ""           # folder (autoexport) or export.xml (appleexport)
-goal   = 10000
 ```
 
 ### Weather
@@ -83,22 +77,10 @@ Get a free API key at <https://openweathermap.org/api>, put it in
 hint. The last successful fetch is cached, so going offline shows the previous
 reading with a `(stale)` marker rather than an error.
 
-### Steps
-
-Three sources, selected by `steps.source`:
-
-- **`manual`** (default) — press `s` to type today's count. Stored locally.
-- **`autoexport`** — point `steps.path` at a folder of CSV/JSON files written by
-  the [Health Auto Export](https://www.healthexportapp.com/) app. Files are
-  scanned and step rows for the selected day are summed.
-- **`appleexport`** — point `steps.path` at a native Apple Health `export.xml`.
-  It is parsed once and cached (`steps-cache.json`); it is only re-parsed when
-  the source file changes, since that file is typically very large.
-
 ## Data
 
-Everything lives under the data dir (`~/.local/share/almanac` or
-`$XDG_DATA_HOME/almanac`):
+Everything lives under the data dir (`~/.local/share/saga-notes` or
+`$XDG_DATA_HOME/saga-notes`):
 
-- `state.json` — goals, manual step counts, cached weather
+- `state.json` — goals, cached weather
 - `notes/YYYY-MM-DD.md` — one Markdown file per day, editable outside the app
