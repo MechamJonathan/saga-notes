@@ -1,5 +1,5 @@
-// Package config loads and persists the user's almanac configuration from
-// ~/.config/almanac/config.toml, creating a sensible default on first run.
+// Package config loads and persists the user's saga-notes configuration from
+// ~/.config/saga-notes/config.toml, creating a sensible default on first run.
 package config
 
 import (
@@ -14,7 +14,6 @@ import (
 type Config struct {
 	Accent  string        `toml:"accent"` // hex accent color, e.g. "#4ec9b0"
 	Weather WeatherConfig `toml:"weather"`
-	Steps   StepsConfig   `toml:"steps"`
 	Journal JournalConfig `toml:"journal"`
 }
 
@@ -33,13 +32,6 @@ type WeatherConfig struct {
 	Units  string  `toml:"units"` // "imperial" (°F) or "metric" (°C)
 }
 
-// StepsConfig selects and configures the step-count source.
-type StepsConfig struct {
-	Source string `toml:"source"` // "manual", "autoexport", or "appleexport"
-	Path   string `toml:"path"`   // file or folder for the export-based sources
-	Goal   int    `toml:"goal"`   // daily step goal
-}
-
 // Default returns the configuration used on first run.
 func Default() Config {
 	return Config{
@@ -47,17 +39,12 @@ func Default() Config {
 		Weather: WeatherConfig{
 			Units: "imperial",
 		},
-		Steps: StepsConfig{
-			Source: "manual",
-			Goal:   10000,
-		},
 		Journal: JournalConfig{
 			NonNegotiables: []string{
 				"SLEPT 7+ HOURS",
 				"READ GOALS",
 				"FOLLOWED MEAL PLAN",
 				"HYDRATED",
-				"STEP GOAL",
 			},
 		},
 	}
@@ -69,7 +56,7 @@ func Path() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "almanac", "config.toml"), nil
+	return filepath.Join(dir, "saga-notes", "config.toml"), nil
 }
 
 // Load reads the config file, writing and returning defaults if none exists.
@@ -124,12 +111,6 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Weather.Units == "" {
 		c.Weather.Units = d.Weather.Units
-	}
-	if c.Steps.Source == "" {
-		c.Steps.Source = d.Steps.Source
-	}
-	if c.Steps.Goal == 0 {
-		c.Steps.Goal = d.Steps.Goal
 	}
 	if len(c.Journal.NonNegotiables) == 0 {
 		c.Journal.NonNegotiables = d.Journal.NonNegotiables

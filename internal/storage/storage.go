@@ -1,5 +1,5 @@
-// Package storage persists almanac's local-first state: goals, manual step
-// counts, cached live data (in state.json), and per-day notes as Markdown files.
+// Package storage persists saga-notes local-first state: goals, cached live
+// data (in state.json), and per-day notes as Markdown files.
 package storage
 
 import (
@@ -51,13 +51,12 @@ type WeatherCache struct {
 
 // State is the JSON-serialized application state.
 type State struct {
-	Goals       []Goal         `json:"goals"`
-	ManualSteps map[string]int `json:"manual_steps"` // date -> step count
-	Weather     *WeatherCache  `json:"weather,omitempty"`
+	Goals   []Goal        `json:"goals"`
+	Weather *WeatherCache `json:"weather,omitempty"`
 }
 
-// Dir returns the almanac data directory (~/.local/share/almanac on Linux,
-// ~/Library/Application Support/almanac on macOS).
+// Dir returns the saga-notes data directory (~/.local/share/saga-notes on Linux,
+// ~/Library/Application Support/saga-notes on macOS).
 func Dir() (string, error) {
 	base, err := os.UserHomeDir()
 	if err != nil {
@@ -65,9 +64,9 @@ func Dir() (string, error) {
 	}
 	// Prefer XDG_DATA_HOME when set; otherwise use a stable per-OS location.
 	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
-		return filepath.Join(xdg, "almanac"), nil
+		return filepath.Join(xdg, "saga-notes"), nil
 	}
-	return filepath.Join(base, ".local", "share", "almanac"), nil
+	return filepath.Join(base, ".local", "share", "saga-notes"), nil
 }
 
 func statePath() (string, error) {
@@ -80,7 +79,7 @@ func statePath() (string, error) {
 
 // Load reads state.json, returning an empty (initialized) State if none exists.
 func Load() (State, error) {
-	s := State{ManualSteps: map[string]int{}}
+	s := State{}
 	path, err := statePath()
 	if err != nil {
 		return s, err
@@ -94,9 +93,6 @@ func Load() (State, error) {
 	}
 	if err := json.Unmarshal(data, &s); err != nil {
 		return s, err
-	}
-	if s.ManualSteps == nil {
-		s.ManualSteps = map[string]int{}
 	}
 	return s, nil
 }

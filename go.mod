@@ -1,4 +1,4 @@
-module almanac
+module saga-notes
 
 go 1.24.2
 

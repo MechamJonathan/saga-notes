@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"almanac/internal/config"
-	"almanac/internal/storage"
+	"saga-notes/internal/config"
+	"saga-notes/internal/storage"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -16,8 +16,7 @@ func newTestModel(t *testing.T) model {
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	cfg := config.Default()
 	state := storage.State{
-		Goals:       []storage.Goal{{Text: "Ship the plan"}, {Text: "Walk the dog", Done: true}},
-		ManualSteps: map[string]int{},
+		Goals: []storage.Goal{{Text: "Ship the plan"}, {Text: "Walk the dog", Done: true}},
 	}
 	m := New(cfg, state)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
@@ -28,7 +27,7 @@ func TestViewContainsSections(t *testing.T) {
 	m := newTestModel(t)
 	out := m.View()
 	for _, want := range []string{
-		"almanac", "GOALS", "WEATHER", "NON-NEGOTIABLES", "NOTES", "Ship the plan",
+		"Saga Notes", "GOALS", "WEATHER", "NON-NEGOTIABLES", "NOTES", "Ship the plan",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("View() missing %q", want)
@@ -39,7 +38,7 @@ func TestViewContainsSections(t *testing.T) {
 func TestViewContainsNonNeg(t *testing.T) {
 	m := newTestModel(t)
 	out := m.View()
-	for _, want := range []string{"SLEPT 7+ HOURS", "READ GOALS", "HYDRATED", "STEP GOAL"} {
+	for _, want := range []string{"SLEPT 7+ HOURS", "READ GOALS", "HYDRATED"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("View() missing non-neg %q", want)
 		}

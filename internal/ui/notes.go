@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"almanac/internal/quotes"
-	"almanac/internal/storage"
+	"saga-notes/internal/quotes"
+	"saga-notes/internal/storage"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"

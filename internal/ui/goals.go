@@ -3,7 +3,7 @@ package ui
 import (
 	"strings"
 
-	"almanac/internal/storage"
+	"saga-notes/internal/storage"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"

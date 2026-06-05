@@ -1,6 +1,6 @@
-// Command almanac is a terminal dashboard styled like a two-page journal: a
+// Command saga is a terminal dashboard styled like a two-page journal: a
 // left "info" page (calendar, weather, goals) and a right "writing" page
-// (notes), with a header showing the date, clock, moon phase, and step count.
+// (notes), with a header showing the date, clock, and moon phase.
 package main
 
 import (
@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"almanac/internal/config"
-	"almanac/internal/storage"
-	"almanac/internal/ui"
+	"saga-notes/internal/config"
+	"saga-notes/internal/storage"
+	"saga-notes/internal/ui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -28,28 +28,33 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "almanac: loading config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "saga: loading config: %v\n", err)
 		os.Exit(1)
 	}
 
 	state, err := storage.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "almanac: loading state: %v\n", err)
+		fmt.Fprintf(os.Stderr, "saga: loading state: %v\n", err)
 		os.Exit(1)
 	}
 
+	// Request the terminal window to maximize before entering alt screen.
+	fmt.Print("\033[9;1t")
+
 	p := tea.NewProgram(ui.New(cfg, state), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "almanac: %v\n", err)
+	_, runErr := p.Run()
+	fmt.Print("\033[9;0t") // restore window to pre-launch size
+	if runErr != nil {
+		fmt.Fprintf(os.Stderr, "saga: %v\n", runErr)
 		os.Exit(1)
 	}
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `almanac — a terminal journal dashboard
+	fmt.Fprintf(os.Stderr, `saga — a terminal journal dashboard
 
 Usage:
-  almanac [flags]
+  saga [flags]
 
 Flags:
   --config   print the config file path and exit
@@ -61,9 +66,8 @@ Keys:
   space      toggle a goal
   a/e/d      add / edit / delete a goal
   i / e      write a note inline / open $EDITOR (notes focused)
-  s          set today's step count (manual source)
   [ / ]      previous / next day
-  w          refresh weather & steps
+  w          refresh weather
   q          quit
 `)
 }

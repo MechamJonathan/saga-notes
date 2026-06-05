@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"almanac/internal/storage"
+	"saga-notes/internal/storage"
 )
 
 // weatherState bundles everything the weather block needs to render.
