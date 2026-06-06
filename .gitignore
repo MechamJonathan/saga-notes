@@ -1,6 +1,10 @@
 # Build output
 /almanac
+/saga
 *.exe
+
+# Config (contains API keys)
+config.toml
 
 # macOS
 .DS_Store

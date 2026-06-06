@@ -28,6 +28,9 @@ type Weather struct {
 // ErrNoAPIKey indicates the user has not configured an OpenWeatherMap key.
 var ErrNoAPIKey = errors.New("weather: no OpenWeatherMap API key configured")
 
+// ErrNoLocation indicates the user has not configured lat/lon coordinates.
+var ErrNoLocation = errors.New("weather: lat/lon not set in config.toml")
+
 // owmResponse is the subset of the /data/2.5/weather payload we use.
 type owmResponse struct {
 	Weather []struct {
@@ -46,6 +49,9 @@ type owmResponse struct {
 func Fetch(ctx context.Context, cfg config.WeatherConfig) (Weather, error) {
 	if cfg.APIKey == "" {
 		return Weather{}, ErrNoAPIKey
+	}
+	if cfg.Lat == 0 && cfg.Lon == 0 {
+		return Weather{}, ErrNoLocation
 	}
 
 	q := url.Values{}

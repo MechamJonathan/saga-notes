@@ -1,5 +1,5 @@
 // Package config loads and persists the user's saga-notes configuration from
-// ~/.config/saga-notes/config.toml, creating a sensible default on first run.
+// config.toml in the working directory (i.e. the project root).
 package config
 
 import (
@@ -50,13 +50,13 @@ func Default() Config {
 	}
 }
 
-// Path returns the absolute path to the config file.
+// Path returns the absolute path to the config file (in the working directory).
 func Path() (string, error) {
-	dir, err := os.UserConfigDir()
+	dir, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "saga-notes", "config.toml"), nil
+	return filepath.Join(dir, "config.toml"), nil
 }
 
 // Load reads the config file, writing and returning defaults if none exists.

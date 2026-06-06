@@ -16,7 +16,6 @@ type Styles struct {
 	Faint       lipgloss.Style // secondary/dim text
 	Selected    lipgloss.Style // selected list row
 	Today       lipgloss.Style // today's calendar cell
-	Quote       lipgloss.Style // quote-of-the-day line
 	Done        lipgloss.Style // completed goal text
 	ProgressOn  lipgloss.Style // filled progress segment
 	ProgressOff lipgloss.Style // empty progress segment
@@ -44,13 +43,12 @@ func NewStyles(accentHex string) Styles {
 		Footer: lipgloss.NewStyle().Foreground(dim),
 		Faint:  lipgloss.NewStyle().Foreground(dim),
 
-		Selected: lipgloss.NewStyle().Foreground(accent).Bold(true),
+		Selected: lipgloss.NewStyle().Foreground(lipgloss.Color("#00d7ff")).Bold(true),
 		Today: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("0")).
 			Background(accent).
 			Bold(true),
-		Quote: lipgloss.NewStyle().Foreground(dim).Italic(true),
-		Done:  lipgloss.NewStyle().Foreground(dim).Strikethrough(true),
+		Done: lipgloss.NewStyle().Foreground(dim).Strikethrough(true),
 
 		ProgressOn:  lipgloss.NewStyle().Foreground(accent),
 		ProgressOff: lipgloss.NewStyle().Foreground(dim),

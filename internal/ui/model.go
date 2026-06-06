@@ -99,6 +99,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.weather.err = nil
 		cache := storage.WeatherCache{
+			City:      msg.w.City,
 			TempNow:   msg.w.TempNow,
 			TempHigh:  msg.w.TempHigh,
 			TempLow:   msg.w.TempLow,
