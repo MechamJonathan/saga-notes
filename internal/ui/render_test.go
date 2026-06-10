@@ -27,7 +27,7 @@ func TestViewContainsSections(t *testing.T) {
 	m := newTestModel(t)
 	out := m.View()
 	for _, want := range []string{
-		"Saga Notes", "GOALS", "WEATHER", "NON-NEGOTIABLES", "NOTES", "Ship the plan",
+		"GOALS", "WEATHER", "DAILY NON-NEGOTIABLES", "NOTES", "Ship the plan",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("View() missing %q", want)
@@ -71,7 +71,7 @@ func TestViewStacksWhenNarrow(t *testing.T) {
 	m := newTestModel(t)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 60, Height: 40})
 	out := next.(model).View()
-	if !strings.Contains(out, "GOALS") || !strings.Contains(out, "NON-NEGOTIABLES") {
+	if !strings.Contains(out, "GOALS") || !strings.Contains(out, "DAILY NON-NEGOTIABLES") {
 		t.Error("narrow View() should still show both panels stacked")
 	}
 }

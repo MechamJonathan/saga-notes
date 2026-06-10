@@ -49,6 +49,7 @@ type dailyModel struct {
 	day     time.Time
 	entry   storage.DayEntry
 	nonNegs []string // labels; editable at runtime, persisted via nonNegsSavedMsg
+	streaks []int    // consecutive-day streak per non-neg index, relative to today
 	note    string   // loaded from .md file
 
 	cursor int
@@ -62,7 +63,7 @@ type dailyModel struct {
 	styles        Styles
 }
 
-func newDaily(styles Styles, nonNegs []string, day time.Time, entry storage.DayEntry, note string) dailyModel {
+func newDaily(styles Styles, nonNegs []string, streaks []int, day time.Time, entry storage.DayEntry, note string) dailyModel {
 	entry = entry.EnsureNonNegs(len(nonNegs))
 
 	ta := textarea.New()
@@ -78,6 +79,7 @@ func newDaily(styles Styles, nonNegs []string, day time.Time, entry storage.DayE
 		day:         day,
 		entry:       entry,
 		nonNegs:     nonNegs,
+		streaks:     streaks,
 		note:        note,
 		mode:        dailyNormal,
 		textarea:    ta,
@@ -341,10 +343,14 @@ func (m dailyModel) view(width int, focused bool, today time.Time) string {
 	b.WriteString("\n")
 	for i, label := range m.nonNegs {
 		done := i < len(m.entry.NonNegs) && m.entry.NonNegs[i]
+		streak := 0
+		if i < len(m.streaks) {
+			streak = m.streaks[i]
+		}
 		if m.mode == dailyEditNonNeg && i == m.cursor {
 			b.WriteString("  " + m.styles.Selected.Render("› ") + m.nonNegInput.View())
 		} else {
-			b.WriteString(m.renderNonNeg(i, label, done, focused))
+			b.WriteString(m.renderNonNeg(i, label, done, focused, streak, width))
 		}
 		b.WriteString("\n")
 	}
@@ -405,7 +411,7 @@ func (m dailyModel) renderDaySel(today time.Time) string {
 	return strings.Join(parts, "")
 }
 
-func (m dailyModel) renderNonNeg(i int, label string, done bool, focused bool) string {
+func (m dailyModel) renderNonNeg(i int, label string, done bool, focused bool, streak int, width int) string {
 	cur := "  "
 	if focused && m.cursor == i && m.mode == dailyNormal {
 		cur = m.styles.Selected.Render("› ")
@@ -422,7 +428,19 @@ func (m dailyModel) renderNonNeg(i int, label string, done bool, focused bool) s
 	default:
 		item = m.styles.Faint.Render("☐ " + label)
 	}
-	return cur + item
+
+	var streakStr string
+	if streak == 0 {
+		streakStr = m.styles.Faint.Render("—")
+	} else if done {
+		streakStr = lipgloss.NewStyle().Foreground(m.styles.Accent).Bold(true).Render(fmt.Sprintf("%dd", streak))
+	} else {
+		streakStr = m.styles.Selected.Render(fmt.Sprintf("%dd", streak))
+	}
+
+	used := lipgloss.Width(cur) + lipgloss.Width(item) + lipgloss.Width(streakStr)
+	pad := max(1, width-used)
+	return cur + item + strings.Repeat(" ", pad) + streakStr
 }
 
 func (m dailyModel) renderRating(label string, val, cursorPos int, focused bool) string {

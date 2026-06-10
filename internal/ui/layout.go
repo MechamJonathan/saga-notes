@@ -29,9 +29,9 @@ func (m model) panelOuterWidths() (left, right int, stacked bool) {
 }
 
 // panelOuterHeights returns the total rendered height of the top/left and
-// bottom/right panels. The region excludes the header and footer rows.
+// bottom/right panels. The region excludes the header panel and footer rows.
 func (m model) panelOuterHeights() (top, bottom int, stacked bool) {
-	region := m.height - 2 // minus header + footer
+	region := m.height - headerOuterH - 1 // minus header panel + footer
 	if m.width < stackBreakpoint {
 		t := region / 2
 		return t, region - t, true
@@ -68,7 +68,7 @@ func (m model) View() string {
 		return "loading…"
 	}
 
-	header := renderHeader(m.styles, m.now)
+	header := renderHeaderPanel(m.styles, m.now, m.width)
 	footer := m.footerLine()
 
 	leftOuterW, rightOuterW, stacked := m.panelOuterWidths()
@@ -85,10 +85,10 @@ func (m model) View() string {
 		Render(rightContent)
 
 	if stacked {
-		return lipgloss.JoinVertical(lipgloss.Left, header, left, right, footer)
+		return header + "\n" + left + "\n" + right + "\n" + footer
 	}
 	panels := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
-	return lipgloss.JoinVertical(lipgloss.Left, header, panels, footer)
+	return header + "\n" + panels + "\n" + footer
 }
 
 // leftPanel composes the calendar, weather, and goals sections.

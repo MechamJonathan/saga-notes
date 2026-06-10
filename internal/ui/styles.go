@@ -2,12 +2,10 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
-// Retro Nordic palette — phosphor-bright aurora tones on a cool Nordic base.
+// Single-hue palette — everything derives from one phosphor teal.
 const (
-	nordTeal     = lipgloss.Color("#2de2d2") // phosphor teal   — accent, done items
-	nordCyan     = lipgloss.Color("#5bc8fa") // arctic cyan     — header, selection
-	nordBlue     = lipgloss.Color("#80aaff") // aurora blue     — section titles
-	nordDeepBlue = lipgloss.Color("#4077d4") // vivid cobalt    — focused border, today
+	teal    = lipgloss.Color("#2de2d2") // primary accent
+	tealDim = lipgloss.Color("#1a8a84") // darker teal — focused border, today bg
 )
 
 // Styles holds the lipgloss styles for the UI.
@@ -29,7 +27,7 @@ type Styles struct {
 	ProgressOff lipgloss.Style // empty progress segment
 }
 
-// NewStyles builds the Nord-frost style set.
+// NewStyles builds the single-teal style set.
 func NewStyles(_ string) Styles {
 	dim := lipgloss.Color("240")
 
@@ -38,26 +36,26 @@ func NewStyles(_ string) Styles {
 		Padding(0, 2)
 
 	return Styles{
-		Accent: nordTeal,
+		Accent: teal,
 		Dim:    dim,
 
 		App:        lipgloss.NewStyle(),
-		PanelFocus: panel.BorderForeground(nordDeepBlue),
+		PanelFocus: panel.BorderForeground(teal),
 		PanelBlur:  panel.BorderForeground(dim),
 
-		Title:  lipgloss.NewStyle().Foreground(nordBlue).Bold(true),
-		Header: lipgloss.NewStyle().Foreground(nordCyan).Bold(true),
+		Title:  lipgloss.NewStyle().Foreground(teal).Bold(true),
+		Header: lipgloss.NewStyle().Foreground(teal).Bold(true),
 		Footer: lipgloss.NewStyle().Foreground(dim),
 		Faint:  lipgloss.NewStyle().Foreground(dim),
 
-		Selected: lipgloss.NewStyle().Foreground(nordCyan).Bold(true),
+		Selected: lipgloss.NewStyle().Foreground(teal).Bold(true),
 		Today: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("0")).
-			Background(nordDeepBlue).
+			Background(tealDim).
 			Bold(true),
 		Done: lipgloss.NewStyle().Foreground(dim).Strikethrough(true),
 
-		ProgressOn:  lipgloss.NewStyle().Foreground(nordTeal),
+		ProgressOn:  lipgloss.NewStyle().Foreground(teal),
 		ProgressOff: lipgloss.NewStyle().Foreground(dim),
 	}
 }

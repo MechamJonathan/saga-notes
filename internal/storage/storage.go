@@ -203,6 +203,35 @@ func LoadNote(day time.Time) (string, error) {
 	return string(data), nil
 }
 
+// ComputeNonNegStreaks returns the current consecutive-day streak for each of
+// the n non-negotiables, relative to today. If today's entry isn't done yet,
+// the count reflects yesterday-and-back so the user sees what they stand to lose.
+func ComputeNonNegStreaks(n int, today time.Time) []int {
+	streaks := make([]int, n)
+	for i := range streaks {
+		day := today
+		skippedToday := false
+		for {
+			e, _ := LoadDay(day)
+			done := i < len(e.NonNegs) && e.NonNegs[i]
+			if !done {
+				if !skippedToday && day.Equal(today) {
+					skippedToday = true
+					day = day.AddDate(0, 0, -1)
+					continue
+				}
+				break
+			}
+			streaks[i]++
+			day = day.AddDate(0, 0, -1)
+			if streaks[i] >= 365 {
+				break
+			}
+		}
+	}
+	return streaks
+}
+
 // SaveNote writes (or removes, if empty) the note for a day.
 func SaveNote(day time.Time, body string) error {
 	path, err := NotePath(day)
