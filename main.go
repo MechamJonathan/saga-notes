@@ -67,6 +67,7 @@ Keys:
   a/e/d      add / edit / delete a goal
   i / e      write a note inline / open $EDITOR (notes focused)
   [ / ]      previous / next day
+  t          jump to today
   w          refresh weather
   q          quit
 `)

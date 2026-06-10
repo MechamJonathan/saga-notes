@@ -160,6 +160,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.changeDay(-1)
 	case "]":
 		return m.changeDay(1)
+	case "t":
+		return m.jumpToday()
 	case "w":
 		m.weather.loading = m.weather.cache == nil
 		return m, fetchWeatherCmd(m.cfg.Weather)
@@ -177,6 +179,16 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.daily, cmd = m.daily.update(msg)
 	return m, cmd
+}
+
+// jumpToday resets the selected day to today.
+func (m model) jumpToday() (tea.Model, tea.Cmd) {
+	m.selected = truncDay(m.now)
+	body, _ := storage.LoadNote(m.selected)
+	dayEntry, _ := storage.LoadDay(m.selected)
+	m.daily = m.daily.setDay(m.selected, dayEntry, body)
+	m.layoutDaily()
+	return m, nil
 }
 
 // changeDay moves the selected day and reloads day-scoped data.

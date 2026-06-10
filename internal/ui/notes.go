@@ -225,11 +225,11 @@ func saveNoteCmd(day time.Time, body string) tea.Cmd {
 
 // --- rendering ---------------------------------------------------------------
 
-func (m dailyModel) view(width int, focused bool) string {
+func (m dailyModel) view(width int, focused bool, today time.Time) string {
 	var b strings.Builder
 
 	// Day-of-week selector + date label
-	daySel := m.renderDaySel()
+	daySel := m.renderDaySel(today)
 	dateLabel := m.styles.Faint.Render(m.day.Format("Mon, Jan 2"))
 	gap := max(1, width-lipgloss.Width(daySel)-lipgloss.Width(dateLabel))
 	b.WriteString(daySel + strings.Repeat(" ", gap) + dateLabel)
@@ -285,14 +285,18 @@ func (m dailyModel) sectionHdr(title string, width int) string {
 		Render(title)
 }
 
-func (m dailyModel) renderDaySel() string {
+func (m dailyModel) renderDaySel(today time.Time) string {
 	labels := []string{"S", "M", "T", "W", "T", "F", "S"}
-	wd := int(m.day.Weekday())
+	selectedWd := int(m.day.Weekday())
+	todayWd := int(today.Weekday())
 	var parts []string
 	for i, d := range labels {
-		if i == wd {
+		switch {
+		case i == selectedWd:
 			parts = append(parts, m.styles.Today.Render("["+d+"]"))
-		} else {
+		case i == todayWd:
+			parts = append(parts, m.styles.Selected.Render("["+d+"]"))
+		default:
 			parts = append(parts, m.styles.Faint.Render(" "+d+" "))
 		}
 	}
