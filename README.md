@@ -52,12 +52,8 @@ Below ~80 columns the two pages stack vertically.
 
 ## Configuration
 
-On first run, a default config is written to:
-
-- macOS: `~/Library/Application Support/saga-notes/config.toml`
-- Linux: `~/.config/saga-notes/config.toml`
-
-Print the exact path with `saga --config`.
+`config.toml` lives next to the `saga` binary (i.e. in the project root).
+On first run it is created automatically. Print the exact path with `saga --config`.
 
 ```toml
 accent = "#4ec9b0"

@@ -119,22 +119,21 @@ func (m goalsModel) view(width int, focused bool) string {
 		b.WriteString(m.styles.Faint.Render("no goals yet — press a to add"))
 	}
 
+	done := lipgloss.NewStyle().Foreground(m.styles.Accent).Strikethrough(true)
+
 	for i, g := range m.goals {
-		check := "☐"
-		if g.Done {
-			check = "☑"
-		}
-		text := g.Text
 		if m.mode == goalEditing && i == m.cursor {
-			b.WriteString("  " + check + " " + m.input.View() + "\n")
+			b.WriteString("  " + m.styles.Faint.Render("☐") + " " + m.input.View() + "\n")
 			continue
 		}
-		label := check + " " + text
+		var label string
 		switch {
 		case g.Done:
-			label = m.styles.Faint.Render(check) + " " + m.styles.Done.Render(text)
+			label = done.Render("☑") + " " + done.Render(g.Text)
 		case focused && i == m.cursor:
-			label = m.styles.Selected.Render(label)
+			label = m.styles.Selected.Render("☐ " + g.Text)
+		default:
+			label = m.styles.Faint.Render("☐ " + g.Text)
 		}
 		cursor := "  "
 		if focused && i == m.cursor && m.mode == goalNormal {
@@ -144,7 +143,7 @@ func (m goalsModel) view(width int, focused bool) string {
 	}
 
 	if m.mode == goalAdding {
-		b.WriteString("  ☐ " + m.input.View() + "\n")
+		b.WriteString("  " + m.styles.Faint.Render("☐") + " " + m.input.View() + "\n")
 	}
 
 	return lipgloss.NewStyle().Width(width).Render(b.String())

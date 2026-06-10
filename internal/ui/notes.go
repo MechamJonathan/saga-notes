@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"saga-notes/internal/quotes"
 	"saga-notes/internal/storage"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -109,9 +108,9 @@ func (m *dailyModel) resize(width, height int) {
 //	day-sel(1) sep(1) blank(1) hdr(1) items(N) blank(1)
 //	mood(1) energy(1) blank(1) NOTES-hdr(1) dot-above(1)
 //	[viewport]
-//	blank(1) dot-below(1) blank(1) quote(1) nl(1) author(1)
-//	= 14 + N
-func (m dailyModel) overheadLines() int { return 14 + len(m.nonNegs) }
+//	blank(1) dot-below(1)
+//	= 11 + N
+func (m dailyModel) overheadLines() int { return 11 + len(m.nonNegs) }
 
 func (m *dailyModel) refreshViewport() {
 	content := m.note
@@ -271,15 +270,6 @@ func (m dailyModel) view(width int, focused bool) string {
 	b.WriteString(dots)
 	b.WriteString("\n")
 
-	// Daily quote at the bottom
-	q := quotes.OfDay(m.day)
-	if q.Text != "" {
-		b.WriteString("\n")
-		b.WriteString(m.styles.Quote.Render("❝ " + q.Text))
-		b.WriteString("\n")
-		b.WriteString(m.styles.Quote.Render("   — " + q.Author))
-	}
-
 	return lipgloss.NewStyle().Width(width).Render(b.String())
 }
 
@@ -315,21 +305,18 @@ func (m dailyModel) renderNonNeg(i int, label string, done bool, focused bool) s
 		cur = m.styles.Selected.Render("› ")
 	}
 
-	check := m.styles.Faint.Render("○")
-	if done {
-		check = lipgloss.NewStyle().Foreground(m.styles.Accent).Render("◉")
-	}
+	doneStyle := lipgloss.NewStyle().Foreground(m.styles.Accent).Strikethrough(true)
 
-	var text string
+	var item string
 	switch {
-	case focused && m.cursor == i:
-		text = m.styles.Selected.Render(label)
 	case done:
-		text = label // full brightness when accomplished
+		item = doneStyle.Render("☑ " + label)
+	case focused && m.cursor == i:
+		item = m.styles.Selected.Render("☐ " + label)
 	default:
-		text = m.styles.Faint.Render(label)
+		item = m.styles.Faint.Render("☐ " + label)
 	}
-	return cur + check + "  " + text
+	return cur + item
 }
 
 func (m dailyModel) renderRating(label string, val, cursorPos int, focused bool) string {

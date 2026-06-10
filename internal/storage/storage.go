@@ -40,6 +40,7 @@ func (e DayEntry) EnsureNonNegs(n int) DayEntry {
 
 // WeatherCache stores the last successful weather fetch.
 type WeatherCache struct {
+	City      string    `json:"city"`
 	TempNow   float64   `json:"temp_now"`
 	TempHigh  float64   `json:"temp_high"`
 	TempLow   float64   `json:"temp_low"`

@@ -35,6 +35,10 @@ func renderWeather(s Styles, w weatherState) string {
 	}
 
 	c := w.cache
+	if c.City != "" {
+		b.WriteString(s.Faint.Render(c.City))
+		b.WriteString("\n")
+	}
 	b.WriteString(fmt.Sprintf("%s  %.0f%s  %s\n", c.Icon, c.TempNow, w.unit, c.Desc))
 	b.WriteString(s.Faint.Render(fmt.Sprintf("H %.0f%s · L %.0f%s", c.TempHigh, w.unit, c.TempLow, w.unit)))
 
@@ -48,6 +52,9 @@ func renderWeather(s Styles, w weatherState) string {
 func weatherErrHint(err error) string {
 	if strings.Contains(err.Error(), "no OpenWeatherMap API key") {
 		return "set weather.api_key in config.toml"
+	}
+	if strings.Contains(err.Error(), "lat/lon not set") {
+		return "set weather.lat and weather.lon in config.toml"
 	}
 	return "offline"
 }
