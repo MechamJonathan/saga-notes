@@ -48,6 +48,11 @@ func New(cfg config.Config, state storage.State) model {
 	note, _ := storage.LoadNote(day)
 	entry, _ := storage.LoadDay(day)
 
+	nonNegs := state.NonNegotiables
+	if len(nonNegs) == 0 {
+		nonNegs = cfg.Journal.NonNegotiables
+	}
+
 	m := model{
 		cfg:      cfg,
 		styles:   styles,
@@ -55,7 +60,7 @@ func New(cfg config.Config, state storage.State) model {
 		now:      now,
 		selected: day,
 		goals:    newGoals(styles, state.Goals),
-		daily:    newDaily(styles, cfg.Journal.NonNegotiables, day, entry, note),
+		daily:    newDaily(styles, nonNegs, day, entry, note),
 	}
 	m.weather = weatherState{cache: state.Weather, unit: cfg.TempUnit(), loading: true}
 	return m
@@ -112,6 +117,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_ = storage.Save(m.state)
 		return m, nil
 
+	case nonNegsSavedMsg:
+		m.state.NonNegotiables = msg.labels
+		_ = storage.Save(m.state)
+		m.layoutDaily()
+		return m, nil
+
 	case noteSavedMsg:
 		m.statusMsg = "note saved"
 		return m, nil
@@ -143,6 +154,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.daily.editing() {
 		var cmd tea.Cmd
 		m.daily, cmd = m.daily.update(msg)
+		m.layoutDaily()
 		return m, cmd
 	}
 
@@ -178,6 +190,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	var cmd tea.Cmd
 	m.daily, cmd = m.daily.update(msg)
+	m.layoutDaily()
 	return m, cmd
 }
 
@@ -203,6 +216,11 @@ func (m model) changeDay(delta int) (tea.Model, tea.Cmd) {
 
 func (m *model) persistGoals() {
 	m.state.Goals = m.goals.goals
+	_ = storage.Save(m.state)
+}
+
+func (m *model) persistNonNegs() {
+	m.state.NonNegotiables = m.daily.nonNegs
 	_ = storage.Save(m.state)
 }
 
