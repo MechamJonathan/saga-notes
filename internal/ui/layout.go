@@ -68,7 +68,7 @@ func (m model) View() string {
 		return "loading…"
 	}
 
-	header := renderHeader(m.styles, m.now)
+	header := renderHeader(m.styles, m.now, m.width)
 	footer := m.footerLine()
 
 	leftOuterW, rightOuterW, stacked := m.panelOuterWidths()
