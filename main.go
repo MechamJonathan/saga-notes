@@ -65,8 +65,10 @@ Keys:
   ↑/↓        move (goals) or scroll (notes)
   space      toggle a goal
   a/e/d      add / edit / delete a goal
-  i / e      write a note inline / open $EDITOR (notes focused)
+  a/e/d      add / edit / delete a non-negotiable (notes focused, on a non-neg)
+  i / e      write a note inline / open $EDITOR (notes focused, on notes)
   [ / ]      previous / next day
+  t          jump to today
   w          refresh weather
   q          quit
 `)

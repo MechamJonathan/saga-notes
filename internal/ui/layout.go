@@ -75,7 +75,7 @@ func (m model) View() string {
 	topH, botH, _ := m.panelOuterHeights()
 
 	leftContent := m.leftPanel(contentWidth(leftOuterW))
-	rightContent := m.daily.view(contentWidth(rightOuterW), m.focus == focusNotes)
+	rightContent := m.daily.view(contentWidth(rightOuterW), m.focus == focusNotes, m.now)
 
 	left := m.panelStyle(focusGoals).
 		Width(styleWidth(leftOuterW)).Height(max(1, styleHeight(topH))).
@@ -93,7 +93,7 @@ func (m model) View() string {
 
 // leftPanel composes the calendar, weather, and goals sections.
 func (m model) leftPanel(innerW int) string {
-	cal := renderCalendar(m.styles, m.selected, m.selected)
+	cal := renderCalendar(m.styles, m.selected, m.now, m.selected)
 	wx := renderWeather(m.styles, m.weather)
 	goals := m.goals.view(innerW, m.focus == focusGoals)
 	return strings.Join([]string{cal, wx, goals}, "\n\n")

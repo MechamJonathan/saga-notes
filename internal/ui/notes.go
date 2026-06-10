@@ -11,6 +11,7 @@ import (
 	"saga-notes/internal/storage"
 
 	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -19,8 +20,9 @@ import (
 type dailyMode int
 
 const (
-	dailyNormal   dailyMode = iota
-	dailyEditNote           // notes textarea is active
+	dailyNormal     dailyMode = iota
+	dailyEditNote             // notes textarea is active
+	dailyEditNonNeg           // non-neg label textinput is active
 )
 
 // editorFinishedMsg is sent when an external $EDITOR session exits.
@@ -32,6 +34,10 @@ type noteSavedMsg struct {
 	body string
 }
 
+// nonNegsSavedMsg signals that non-negotiable labels changed and should be
+// persisted by the root model.
+type nonNegsSavedMsg struct{ labels []string }
+
 // dailyModel is the right-panel structured daily journal page.
 // Cursor positions:
 //
@@ -42,14 +48,15 @@ type noteSavedMsg struct {
 type dailyModel struct {
 	day     time.Time
 	entry   storage.DayEntry
-	nonNegs []string // labels from config
+	nonNegs []string // labels; editable at runtime, persisted via nonNegsSavedMsg
 	note    string   // loaded from .md file
 
 	cursor int
 	mode   dailyMode
 
-	viewport viewport.Model
-	textarea textarea.Model
+	viewport    viewport.Model
+	textarea    textarea.Model
+	nonNegInput textinput.Model
 
 	width, height int
 	styles        Styles
@@ -63,15 +70,20 @@ func newDaily(styles Styles, nonNegs []string, day time.Time, entry storage.DayE
 	ta.ShowLineNumbers = false
 	ta.CharLimit = 0
 
+	ti := textinput.New()
+	ti.Placeholder = "Non-negotiable label…"
+	ti.CharLimit = 60
+
 	m := dailyModel{
-		day:      day,
-		entry:    entry,
-		nonNegs:  nonNegs,
-		note:     note,
-		mode:     dailyNormal,
-		textarea: ta,
-		viewport: viewport.New(0, 0),
-		styles:   styles,
+		day:         day,
+		entry:       entry,
+		nonNegs:     nonNegs,
+		note:        note,
+		mode:        dailyNormal,
+		textarea:    ta,
+		nonNegInput: ti,
+		viewport:    viewport.New(0, 0),
+		styles:      styles,
 	}
 	m.refreshViewport()
 	return m
@@ -79,7 +91,9 @@ func newDaily(styles Styles, nonNegs []string, day time.Time, entry storage.DayE
 
 func (m dailyModel) maxCur() int { return len(m.nonNegs) + 2 }
 
-func (m dailyModel) editing() bool { return m.mode == dailyEditNote }
+func (m dailyModel) editing() bool {
+	return m.mode == dailyEditNote || m.mode == dailyEditNonNeg
+}
 
 func (m dailyModel) setDay(day time.Time, entry storage.DayEntry, note string) dailyModel {
 	entry = entry.EnsureNonNegs(len(m.nonNegs))
@@ -88,6 +102,7 @@ func (m dailyModel) setDay(day time.Time, entry storage.DayEntry, note string) d
 	m.note = note
 	m.mode = dailyNormal
 	m.textarea.Blur()
+	m.nonNegInput.Blur()
 	m.refreshViewport()
 	return m
 }
@@ -100,6 +115,7 @@ func (m *dailyModel) resize(width, height int) {
 	m.viewport.Height = vpH
 	m.textarea.SetWidth(width)
 	m.textarea.SetHeight(vpH)
+	m.nonNegInput.Width = max(1, width-4)
 	m.refreshViewport()
 }
 
@@ -121,8 +137,11 @@ func (m *dailyModel) refreshViewport() {
 }
 
 func (m dailyModel) update(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
-	if m.mode == dailyEditNote {
+	switch m.mode {
+	case dailyEditNote:
 		return m.updateTextarea(msg)
+	case dailyEditNonNeg:
+		return m.updateNonNegInput(msg)
 	}
 	return m.updateNormal(msg)
 }
@@ -142,6 +161,40 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 		if m.cursor < len(m.nonNegs) {
 			m.entry.NonNegs[m.cursor] = !m.entry.NonNegs[m.cursor]
 			_ = storage.SaveDay(m.day, m.entry)
+		}
+	case "a":
+		if m.cursor < len(m.nonNegs) || len(m.nonNegs) == 0 {
+			m.nonNegs = append(m.nonNegs, "")
+			m.entry.NonNegs = append(m.entry.NonNegs, false)
+			m.cursor = len(m.nonNegs) - 1
+			m.mode = dailyEditNonNeg
+			m.nonNegInput.SetValue("")
+			m.nonNegInput.Focus()
+			return m, textinput.Blink
+		}
+	case "e":
+		if m.cursor < len(m.nonNegs) {
+			m.mode = dailyEditNonNeg
+			m.nonNegInput.SetValue(m.nonNegs[m.cursor])
+			m.nonNegInput.CursorEnd()
+			m.nonNegInput.Focus()
+			return m, textinput.Blink
+		}
+		if m.cursor == mc {
+			return m, m.openEditor()
+		}
+	case "d":
+		if m.cursor < len(m.nonNegs) {
+			i := m.cursor
+			m.nonNegs = append(m.nonNegs[:i], m.nonNegs[i+1:]...)
+			if i < len(m.entry.NonNegs) {
+				m.entry.NonNegs = append(m.entry.NonNegs[:i], m.entry.NonNegs[i+1:]...)
+			}
+			if m.cursor > 0 && m.cursor >= len(m.nonNegs) {
+				m.cursor--
+			}
+			_ = storage.SaveDay(m.day, m.entry)
+			return m, saveNonNegsCmd(m.nonNegs)
 		}
 	case "1", "2", "3", "4", "5":
 		n, _ := strconv.Atoi(msg.String())
@@ -169,10 +222,6 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 			m.textarea.Focus()
 			return m, textarea.Blink
 		}
-	case "e":
-		if m.cursor == mc {
-			return m, m.openEditor()
-		}
 	}
 	// Pass scroll events to the viewport when on the notes section.
 	if m.cursor == mc {
@@ -181,6 +230,49 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 		return m, cmd
 	}
 	return m, nil
+}
+
+func (m dailyModel) updateNonNegInput(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		text := strings.TrimSpace(m.nonNegInput.Value())
+		m.mode = dailyNormal
+		m.nonNegInput.Blur()
+		if text == "" {
+			// Cancel: remove the blank placeholder that was added for "add" operation.
+			if m.cursor < len(m.nonNegs) && m.nonNegs[m.cursor] == "" {
+				i := m.cursor
+				m.nonNegs = append(m.nonNegs[:i], m.nonNegs[i+1:]...)
+				if i < len(m.entry.NonNegs) {
+					m.entry.NonNegs = append(m.entry.NonNegs[:i], m.entry.NonNegs[i+1:]...)
+				}
+				if m.cursor > 0 && m.cursor >= len(m.nonNegs) {
+					m.cursor--
+				}
+			}
+			return m, nil
+		}
+		m.nonNegs[m.cursor] = text
+		return m, saveNonNegsCmd(m.nonNegs)
+	case "esc":
+		m.mode = dailyNormal
+		m.nonNegInput.Blur()
+		// Remove blank placeholder added for "add" operation.
+		if m.cursor < len(m.nonNegs) && m.nonNegs[m.cursor] == "" {
+			i := m.cursor
+			m.nonNegs = append(m.nonNegs[:i], m.nonNegs[i+1:]...)
+			if i < len(m.entry.NonNegs) {
+				m.entry.NonNegs = append(m.entry.NonNegs[:i], m.entry.NonNegs[i+1:]...)
+			}
+			if m.cursor > 0 && m.cursor >= len(m.nonNegs) {
+				m.cursor--
+			}
+		}
+		return m, nil
+	}
+	var cmd tea.Cmd
+	m.nonNegInput, cmd = m.nonNegInput.Update(msg)
+	return m, cmd
 }
 
 func (m dailyModel) updateTextarea(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
@@ -223,13 +315,19 @@ func saveNoteCmd(day time.Time, body string) tea.Cmd {
 	}
 }
 
+func saveNonNegsCmd(labels []string) tea.Cmd {
+	cp := make([]string, len(labels))
+	copy(cp, labels)
+	return func() tea.Msg { return nonNegsSavedMsg{labels: cp} }
+}
+
 // --- rendering ---------------------------------------------------------------
 
-func (m dailyModel) view(width int, focused bool) string {
+func (m dailyModel) view(width int, focused bool, today time.Time) string {
 	var b strings.Builder
 
 	// Day-of-week selector + date label
-	daySel := m.renderDaySel()
+	daySel := m.renderDaySel(today)
 	dateLabel := m.styles.Faint.Render(m.day.Format("Mon, Jan 2"))
 	gap := max(1, width-lipgloss.Width(daySel)-lipgloss.Width(dateLabel))
 	b.WriteString(daySel + strings.Repeat(" ", gap) + dateLabel)
@@ -239,11 +337,15 @@ func (m dailyModel) view(width int, focused bool) string {
 	b.WriteString("\n")
 
 	// Non-negotiables
-	b.WriteString(m.sectionHdr("NON-NEGOTIABLES", width))
+	b.WriteString(m.sectionHdr("DAILY NON-NEGOTIABLES", width))
 	b.WriteString("\n")
 	for i, label := range m.nonNegs {
 		done := i < len(m.entry.NonNegs) && m.entry.NonNegs[i]
-		b.WriteString(m.renderNonNeg(i, label, done, focused))
+		if m.mode == dailyEditNonNeg && i == m.cursor {
+			b.WriteString("  " + m.styles.Selected.Render("› ") + m.nonNegInput.View())
+		} else {
+			b.WriteString(m.renderNonNeg(i, label, done, focused))
+		}
 		b.WriteString("\n")
 	}
 	b.WriteString("\n")
@@ -285,14 +387,18 @@ func (m dailyModel) sectionHdr(title string, width int) string {
 		Render(title)
 }
 
-func (m dailyModel) renderDaySel() string {
+func (m dailyModel) renderDaySel(today time.Time) string {
 	labels := []string{"S", "M", "T", "W", "T", "F", "S"}
-	wd := int(m.day.Weekday())
+	selectedWd := int(m.day.Weekday())
+	todayWd := int(today.Weekday())
 	var parts []string
 	for i, d := range labels {
-		if i == wd {
+		switch {
+		case i == selectedWd:
 			parts = append(parts, m.styles.Today.Render("["+d+"]"))
-		} else {
+		case i == todayWd:
+			parts = append(parts, m.styles.Selected.Render("["+d+"]"))
+		default:
 			parts = append(parts, m.styles.Faint.Render(" "+d+" "))
 		}
 	}

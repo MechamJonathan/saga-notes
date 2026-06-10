@@ -2,7 +2,15 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
-// Styles holds the lipgloss styles derived from the configured accent color.
+// Retro Nordic palette — phosphor-bright aurora tones on a cool Nordic base.
+const (
+	nordTeal     = lipgloss.Color("#2de2d2") // phosphor teal   — accent, done items
+	nordCyan     = lipgloss.Color("#5bc8fa") // arctic cyan     — header, selection
+	nordBlue     = lipgloss.Color("#80aaff") // aurora blue     — section titles
+	nordDeepBlue = lipgloss.Color("#4077d4") // vivid cobalt    — focused border, today
+)
+
+// Styles holds the lipgloss styles for the UI.
 type Styles struct {
 	Accent lipgloss.Color
 	Dim    lipgloss.Color
@@ -21,9 +29,8 @@ type Styles struct {
 	ProgressOff lipgloss.Style // empty progress segment
 }
 
-// NewStyles builds the style set for the given accent hex color.
-func NewStyles(accentHex string) Styles {
-	accent := lipgloss.Color(accentHex)
+// NewStyles builds the Nord-frost style set.
+func NewStyles(_ string) Styles {
 	dim := lipgloss.Color("240")
 
 	panel := lipgloss.NewStyle().
@@ -31,26 +38,26 @@ func NewStyles(accentHex string) Styles {
 		Padding(0, 2)
 
 	return Styles{
-		Accent: accent,
+		Accent: nordTeal,
 		Dim:    dim,
 
 		App:        lipgloss.NewStyle(),
-		PanelFocus: panel.BorderForeground(accent),
+		PanelFocus: panel.BorderForeground(nordDeepBlue),
 		PanelBlur:  panel.BorderForeground(dim),
 
-		Title:  lipgloss.NewStyle().Foreground(accent).Bold(true),
-		Header: lipgloss.NewStyle().Foreground(accent).Bold(true),
+		Title:  lipgloss.NewStyle().Foreground(nordBlue).Bold(true),
+		Header: lipgloss.NewStyle().Foreground(nordCyan).Bold(true),
 		Footer: lipgloss.NewStyle().Foreground(dim),
 		Faint:  lipgloss.NewStyle().Foreground(dim),
 
-		Selected: lipgloss.NewStyle().Foreground(lipgloss.Color("#00d7ff")).Bold(true),
+		Selected: lipgloss.NewStyle().Foreground(nordCyan).Bold(true),
 		Today: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("0")).
-			Background(accent).
+			Background(nordDeepBlue).
 			Bold(true),
 		Done: lipgloss.NewStyle().Foreground(dim).Strikethrough(true),
 
-		ProgressOn:  lipgloss.NewStyle().Foreground(accent),
+		ProgressOn:  lipgloss.NewStyle().Foreground(nordTeal),
 		ProgressOff: lipgloss.NewStyle().Foreground(dim),
 	}
 }

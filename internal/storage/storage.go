@@ -52,8 +52,9 @@ type WeatherCache struct {
 
 // State is the JSON-serialized application state.
 type State struct {
-	Goals   []Goal        `json:"goals"`
-	Weather *WeatherCache `json:"weather,omitempty"`
+	Goals          []Goal        `json:"goals"`
+	Weather        *WeatherCache `json:"weather,omitempty"`
+	NonNegotiables []string      `json:"non_negotiables,omitempty"`
 }
 
 // Dir returns the saga-notes data directory (~/.local/share/saga-notes on Linux,
