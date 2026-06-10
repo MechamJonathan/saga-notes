@@ -85,10 +85,10 @@ func (m model) View() string {
 		Render(rightContent)
 
 	if stacked {
-		return lipgloss.JoinVertical(lipgloss.Left, header, left, right, footer)
+		return header + "\n" + left + "\n" + right + "\n" + footer
 	}
 	panels := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
-	return lipgloss.JoinVertical(lipgloss.Left, header, panels, footer)
+	return header + "\n" + panels + "\n" + footer
 }
 
 // leftPanel composes the calendar, weather, and goals sections.

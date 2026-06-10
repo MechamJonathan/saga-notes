@@ -6,24 +6,23 @@ import (
 
 	"saga-notes/internal/astro"
 
-	"github.com/charmbracelet/lipgloss"
+	lipgloss "github.com/charmbracelet/lipgloss"
 )
 
 // renderHeader draws a full-width teal bar: app name left, date/clock/moon right.
 func renderHeader(s Styles, now time.Time, width int) string {
 	moon := astro.MoonPhase(now)
-	left := "⚔  Saga Notes"
-	right := strings.Join([]string{
+	info := strings.Join([]string{
 		now.Format("Mon, Jan 2"),
 		now.Format("15:04"),
 		moon.Glyph + " " + moon.Name,
 	}, "  ·  ")
-	gap := max(1, width-lipgloss.Width(left)-lipgloss.Width(right))
-	content := left + strings.Repeat(" ", gap) + right
+	title := "Saga Notes"
+	gap := max(1, width-len(title)-len(info)-2) // -2 for leading space on each side
+	content := " " + title + strings.Repeat(" ", gap) + info + " "
 	return lipgloss.NewStyle().
-		Background(teal).
+		Background(s.Accent).
 		Foreground(lipgloss.Color("0")).
 		Bold(true).
-		Width(width).
 		Render(content)
 }
