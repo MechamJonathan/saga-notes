@@ -52,6 +52,7 @@ func New(cfg config.Config, state storage.State) model {
 	if len(nonNegs) == 0 {
 		nonNegs = cfg.Journal.NonNegotiables
 	}
+	streaks := storage.ComputeNonNegStreaks(len(nonNegs), truncDay(now))
 
 	m := model{
 		cfg:      cfg,
@@ -60,7 +61,7 @@ func New(cfg config.Config, state storage.State) model {
 		now:      now,
 		selected: day,
 		goals:    newGoals(styles, state.Goals),
-		daily:    newDaily(styles, nonNegs, day, entry, note),
+		daily:    newDaily(styles, nonNegs, streaks, day, entry, note),
 	}
 	m.weather = weatherState{cache: state.Weather, unit: cfg.TempUnit(), loading: true}
 	return m
@@ -121,6 +122,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state.NonNegotiables = msg.labels
 		_ = storage.Save(m.state)
 		m.layoutDaily()
+		m.refreshStreaks()
 		return m, nil
 
 	case noteSavedMsg:
@@ -155,6 +157,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.daily, cmd = m.daily.update(msg)
 		m.layoutDaily()
+		m.refreshStreaks()
 		return m, cmd
 	}
 
@@ -191,6 +194,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.daily, cmd = m.daily.update(msg)
 	m.layoutDaily()
+	m.refreshStreaks()
 	return m, cmd
 }
 
@@ -222,6 +226,10 @@ func (m *model) persistGoals() {
 func (m *model) persistNonNegs() {
 	m.state.NonNegotiables = m.daily.nonNegs
 	_ = storage.Save(m.state)
+}
+
+func (m *model) refreshStreaks() {
+	m.daily.streaks = storage.ComputeNonNegStreaks(len(m.daily.nonNegs), truncDay(m.now))
 }
 
 // --- commands ---
