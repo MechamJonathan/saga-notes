@@ -9,15 +9,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// renderHeader draws the top bar: app name on the left, date/clock/moon on the right.
+// renderHeader draws a full-width teal bar: app name left, date/clock/moon right.
 func renderHeader(s Styles, now time.Time, width int) string {
 	moon := astro.MoonPhase(now)
-	left := s.Header.Render("⚔  Saga Notes")
-	right := s.Faint.Render(strings.Join([]string{
+	left := "⚔  Saga Notes"
+	right := strings.Join([]string{
 		now.Format("Mon, Jan 2"),
 		now.Format("15:04"),
 		moon.Glyph + " " + moon.Name,
-	}, "  ·  "))
+	}, "  ·  ")
 	gap := max(1, width-lipgloss.Width(left)-lipgloss.Width(right))
-	return left + strings.Repeat(" ", gap) + right
+	content := left + strings.Repeat(" ", gap) + right
+	return lipgloss.NewStyle().
+		Background(teal).
+		Foreground(lipgloss.Color("0")).
+		Bold(true).
+		Width(width).
+		Render(content)
 }
