@@ -339,7 +339,7 @@ func (m dailyModel) view(width int, focused bool, today time.Time) string {
 	b.WriteString("\n")
 
 	// Non-negotiables
-	b.WriteString(m.sectionHdr("DAILY HABITS", width))
+	b.WriteString(m.habitsHdr(width))
 	b.WriteString("\n")
 	for i, label := range m.nonNegs {
 		done := i < len(m.entry.NonNegs) && m.entry.NonNegs[i]
@@ -379,6 +379,40 @@ func (m dailyModel) view(width int, focused bool, today time.Time) string {
 	b.WriteString("\n")
 
 	return lipgloss.NewStyle().Width(width).Render(b.String())
+}
+
+// habitsHdr renders the DAILY HABITS header bar with a ▓▓░░ progress bar and
+// done/total count right-aligned, so completion is visible at a glance.
+func (m dailyModel) habitsHdr(width int) string {
+	done, total := 0, len(m.nonNegs)
+	for i, d := range m.entry.NonNegs {
+		if i < total && d {
+			done++
+		}
+	}
+	if total == 0 {
+		return m.sectionHdr("DAILY HABITS", width)
+	}
+	bar := ""
+	for i := range total {
+		if i < done {
+			bar += "▓"
+		} else {
+			bar += "░"
+		}
+	}
+	right := bar + fmt.Sprintf("  %d/%d ", done, total)
+	title := " DAILY HABITS"
+	gap := width - len([]rune(title)) - len([]rune(right))
+	if gap < 1 {
+		gap = 1
+	}
+	return lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("0")).
+		Background(m.styles.Accent).
+		Width(width).
+		Render(title + strings.Repeat(" ", gap) + right)
 }
 
 // sectionHdr renders a full-width bold header bar in the journal's style:
