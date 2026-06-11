@@ -339,7 +339,7 @@ func (m dailyModel) view(width int, focused bool, today time.Time) string {
 	b.WriteString("\n")
 
 	// Non-negotiables
-	b.WriteString(m.sectionHdr("DAILY NON-NEGOTIABLES", width))
+	b.WriteString(m.sectionHdr("DAILY HABITS", width))
 	b.WriteString("\n")
 	for i, label := range m.nonNegs {
 		done := i < len(m.entry.NonNegs) && m.entry.NonNegs[i]

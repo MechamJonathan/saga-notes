@@ -112,38 +112,62 @@ func (m goalsModel) updateInput(msg tea.KeyMsg) (goalsModel, bool, tea.Cmd) {
 
 func (m goalsModel) view(width int, focused bool) string {
 	var b strings.Builder
-	b.WriteString(m.styles.Title.Render("✺ GOALS"))
-	b.WriteString("\n")
 
-	if len(m.goals) == 0 && m.mode != goalAdding {
-		b.WriteString(m.styles.Faint.Render("no goals yet — press a to add"))
+	// Partition goal indices into active and completed.
+	var active, completed []int
+	for i, g := range m.goals {
+		if g.Done {
+			completed = append(completed, i)
+		} else {
+			active = append(active, i)
+		}
 	}
 
-	done := lipgloss.NewStyle().Foreground(m.styles.Accent).Strikethrough(true)
+	// Active Goals section.
+	b.WriteString(m.styles.Title.Render("✺ ACTIVE GOALS"))
+	b.WriteString("\n")
 
-	for i, g := range m.goals {
+	if len(active) == 0 && m.mode != goalAdding {
+		b.WriteString(m.styles.Faint.Render("  no active goals — press a to add"))
+		b.WriteString("\n")
+	}
+
+	for _, i := range active {
+		g := m.goals[i]
 		if m.mode == goalEditing && i == m.cursor {
 			b.WriteString("  " + m.styles.Faint.Render("☐") + " " + m.input.View() + "\n")
 			continue
 		}
+		cur := "  "
+		if focused && i == m.cursor && m.mode == goalNormal {
+			cur = m.styles.Selected.Render("› ")
+		}
 		var label string
-		switch {
-		case g.Done:
-			label = done.Render("☑") + " " + done.Render(g.Text)
-		case focused && i == m.cursor:
+		if focused && i == m.cursor {
 			label = m.styles.Selected.Render("☐ " + g.Text)
-		default:
+		} else {
 			label = m.styles.Faint.Render("☐ " + g.Text)
 		}
-		cursor := "  "
-		if focused && i == m.cursor && m.mode == goalNormal {
-			cursor = m.styles.Selected.Render("› ")
-		}
-		b.WriteString(cursor + label + "\n")
+		b.WriteString(cur + label + "\n")
 	}
 
 	if m.mode == goalAdding {
 		b.WriteString("  " + m.styles.Faint.Render("☐") + " " + m.input.View() + "\n")
+	}
+
+	// Recently Completed section.
+	if len(completed) > 0 {
+		b.WriteString("\n")
+		b.WriteString(m.styles.Faint.Render("  RECENTLY COMPLETED"))
+		b.WriteString("\n")
+		for _, i := range completed {
+			g := m.goals[i]
+			cur := "  "
+			if focused && i == m.cursor && m.mode == goalNormal {
+				cur = m.styles.Selected.Render("› ")
+			}
+			b.WriteString(cur + m.styles.Done.Render("☑ "+g.Text) + "\n")
+		}
 	}
 
 	return lipgloss.NewStyle().Width(width).Render(b.String())
