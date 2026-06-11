@@ -74,6 +74,11 @@ type weatherMsg struct {
 	w   weather.Weather
 	err error
 }
+type statusClearMsg struct{}
+
+func statusClearCmd() tea.Cmd {
+	return tea.Tick(3*time.Second, func(time.Time) tea.Msg { return statusClearMsg{} })
+}
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
@@ -123,17 +128,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_ = storage.Save(m.state)
 		m.layoutDaily()
 		m.refreshStreaks()
-		return m, nil
+		m.statusMsg = "habits saved"
+		return m, statusClearCmd()
 
 	case noteSavedMsg:
 		m.statusMsg = "note saved"
-		return m, nil
+		return m, statusClearCmd()
 
 	case editorFinishedMsg:
 		body, _ := storage.LoadNote(m.selected)
 		dayEntry, _ := storage.LoadDay(m.selected)
 		m.daily = m.daily.setDay(m.selected, dayEntry, body)
 		m.layoutDaily()
+		m.statusMsg = "note saved"
+		return m, statusClearCmd()
+
+	case statusClearMsg:
+		m.statusMsg = ""
 		return m, nil
 
 	case tea.KeyMsg:
@@ -147,9 +158,14 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.goals.editing() {
 		var cmd tea.Cmd
 		var changed bool
-		m.goals, changed, cmd = m.goals.update(msg)
+		var status string
+		m.goals, changed, status, cmd = m.goals.update(msg)
 		if changed {
 			m.persistGoals()
+		}
+		if status != "" {
+			m.statusMsg = status
+			cmd = tea.Batch(cmd, statusClearCmd())
 		}
 		return m, cmd
 	}
@@ -185,9 +201,14 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.focus == focusGoals {
 		var cmd tea.Cmd
 		var changed bool
-		m.goals, changed, cmd = m.goals.update(msg)
+		var status string
+		m.goals, changed, status, cmd = m.goals.update(msg)
 		if changed {
 			m.persistGoals()
+		}
+		if status != "" {
+			m.statusMsg = status
+			cmd = tea.Batch(cmd, statusClearCmd())
 		}
 		return m, cmd
 	}

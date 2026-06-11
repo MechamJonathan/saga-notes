@@ -15,7 +15,7 @@ const headerOuterH = 3 // top border + 1 content row + bottom border
 // Placing the text inside a border means it lands on row 1, not row 0.
 func renderHeaderPanel(s Styles, now time.Time, width int) string {
 	moon := astro.MoonPhase(now)
-	text := now.Format("Mon, Jan 2") + "   " + now.Format("15:04") + "   " + moon.Name
+	text := now.Format("Mon, Jan 2") + "   " + now.Format("15:04") + "   " + moon.Glyph + "  " + moon.Name
 	content := lipgloss.NewStyle().Foreground(s.Accent).Bold(true).Render(text)
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
