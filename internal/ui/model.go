@@ -17,6 +17,7 @@ type focus int
 const (
 	focusGoals focus = iota
 	focusNotes
+	focusWeek
 )
 
 // model is the root BubbleTea model.
@@ -30,9 +31,10 @@ type model struct {
 	now      time.Time
 	selected time.Time // day shown in calendar/notes
 
-	focus focus
-	goals goalsModel
-	daily dailyModel
+	focus  focus
+	goals  goalsModel
+	daily  dailyModel
+	weekly weeklyModel
 
 	weather weatherState
 
@@ -62,6 +64,7 @@ func New(cfg config.Config, state storage.State) model {
 		selected: day,
 		goals:    newGoals(styles, state.Goals),
 		daily:    newDaily(styles, nonNegs, streaks, day, entry, note),
+		weekly:   newWeekly(styles, nonNegs, now),
 	}
 	m.weather = weatherState{cache: state.Weather, unit: cfg.TempUnit(), loading: true}
 	return m
@@ -128,6 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_ = storage.Save(m.state)
 		m.layoutDaily()
 		m.refreshStreaks()
+		m.weekly.nonNegs = msg.labels
 		m.statusMsg = "habits saved"
 		return m, statusClearCmd()
 
@@ -181,15 +185,19 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c", "q":
 		return m, tea.Quit
 	case "tab":
-		if m.focus == focusGoals {
-			m.focus = focusNotes
-		} else {
-			m.focus = focusGoals
-		}
+		m.focus = (m.focus + 1) % 3
 		return m, nil
 	case "[":
+		if m.focus == focusWeek {
+			m.weekly = m.weekly.shiftWeek(-1)
+			return m, nil
+		}
 		return m.changeDay(-1)
 	case "]":
+		if m.focus == focusWeek {
+			m.weekly = m.weekly.shiftWeek(1)
+			return m, nil
+		}
 		return m.changeDay(1)
 	case "t":
 		return m.jumpToday()
@@ -198,6 +206,19 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, fetchWeatherCmd(m.cfg.Weather)
 	}
 
+	if m.focus == focusWeek {
+		var day time.Time
+		m.weekly, day = m.weekly.update(msg)
+		if !day.IsZero() {
+			m.selected = day
+			m.focus = focusNotes
+			body, _ := storage.LoadNote(m.selected)
+			entry, _ := storage.LoadDay(m.selected)
+			m.daily = m.daily.setDay(m.selected, entry, body)
+			m.layoutDaily()
+		}
+		return m, nil
+	}
 	if m.focus == focusGoals {
 		var cmd tea.Cmd
 		var changed bool
@@ -219,13 +240,17 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// jumpToday resets the selected day to today.
+// jumpToday resets the selected day to today. In weekly mode it also resets
+// the displayed week to the current week.
 func (m model) jumpToday() (tea.Model, tea.Cmd) {
 	m.selected = truncDay(m.now)
 	body, _ := storage.LoadNote(m.selected)
 	dayEntry, _ := storage.LoadDay(m.selected)
 	m.daily = m.daily.setDay(m.selected, dayEntry, body)
 	m.layoutDaily()
+	if m.focus == focusWeek {
+		m.weekly = newWeekly(m.styles, m.daily.nonNegs, m.now)
+	}
 	return m, nil
 }
 
