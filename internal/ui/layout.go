@@ -75,7 +75,12 @@ func (m model) View() string {
 	topH, botH, _ := m.panelOuterHeights()
 
 	leftContent := m.leftPanel(contentWidth(leftOuterW))
-	rightContent := m.daily.view(contentWidth(rightOuterW), m.focus == focusNotes, m.now)
+	var rightContent string
+	if m.focus == focusWeek {
+		rightContent = m.weekly.view(contentWidth(rightOuterW), styleHeight(botH), m.now)
+	} else {
+		rightContent = m.daily.view(contentWidth(rightOuterW), m.focus == focusNotes, m.now)
+	}
 
 	left := m.panelStyle(focusGoals).
 		Width(styleWidth(leftOuterW)).Height(max(1, styleHeight(topH))).
@@ -100,8 +105,9 @@ func (m model) leftPanel(innerW int) string {
 }
 
 // panelStyle returns the focused or blurred border for the given panel.
+// The right panel (focusNotes) is also shown as focused in weekly mode.
 func (m model) panelStyle(f focus) lipgloss.Style {
-	if m.focus == f {
+	if m.focus == f || (m.focus == focusWeek && f == focusNotes) {
 		return m.styles.PanelFocus
 	}
 	return m.styles.PanelBlur
