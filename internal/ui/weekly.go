@@ -118,6 +118,33 @@ func weeklyHabitsBar(entry storage.DayEntry, total int) string {
 	return fmt.Sprintf("%s  %d/%d", bar.String(), done, total)
 }
 
+// sparkBlocks maps a 0–5 rating to a single block character.
+// 0 (unset) renders as a middle dot so gaps are visible.
+var sparkBlocks = []string{"·", "▁", "▂", "▄", "▆", "█"}
+
+// loadTrendDays returns n DayEntry values ending at today, oldest first.
+func loadTrendDays(today time.Time, n int) []storage.DayEntry {
+	days := make([]storage.DayEntry, n)
+	for i := range n {
+		day := today.AddDate(0, 0, -(n - 1 - i))
+		days[i], _ = storage.LoadDay(day)
+	}
+	return days
+}
+
+// sparkline builds a single-row bar string from a selector applied to each entry.
+func sparkline(data []storage.DayEntry, sel func(storage.DayEntry) int) string {
+	var sb strings.Builder
+	for _, e := range data {
+		v := sel(e)
+		if v < 0 || v > 5 {
+			v = 0
+		}
+		sb.WriteString(sparkBlocks[v])
+	}
+	return sb.String()
+}
+
 func (m weeklyModel) view(width, _ int, now time.Time) string {
 	today := truncDay(now)
 	total := len(m.nonNegs)
@@ -175,6 +202,22 @@ func (m weeklyModel) view(width, _ int, now time.Time) string {
 
 		b.WriteString(line + "\n")
 	}
+
+	// 28-day sparkline trend (oldest left → today right)
+	const trendDays = 28
+	trend := loadTrendDays(today, trendDays)
+	moodLine := sparkline(trend, func(e storage.DayEntry) int { return e.Mood })
+	energyLine := sparkline(trend, func(e storage.DayEntry) int { return e.Energy })
+
+	b.WriteString("\n")
+	b.WriteString(m.styles.Title.Render(" TREND") + m.styles.Faint.Render(fmt.Sprintf("  (%d days, right = today)", trendDays)))
+	b.WriteString("\n")
+	b.WriteString(m.styles.Faint.Render(" mood    "))
+	b.WriteString(m.styles.Header.Render(moodLine))
+	b.WriteString("\n")
+	b.WriteString(m.styles.Faint.Render(" energy  "))
+	b.WriteString(m.styles.Selected.Render(energyLine))
+	b.WriteString("\n")
 
 	return lipgloss.NewStyle().Width(width).Render(b.String())
 }
