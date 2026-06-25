@@ -68,6 +68,10 @@ func (m model) View() string {
 		return "loading…"
 	}
 
+	if m.showHelp {
+		return renderHelp(m.styles, m.width, m.height)
+	}
+
 	header := renderHeaderPanel(m.styles, m.now, m.width)
 	footer := m.footerLine()
 

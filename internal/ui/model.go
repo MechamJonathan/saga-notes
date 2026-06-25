@@ -39,6 +39,7 @@ type model struct {
 	weather weatherState
 
 	statusMsg string
+	showHelp  bool
 }
 
 // New builds the root model from loaded config and state.
@@ -159,6 +160,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Help overlay intercepts all keys except its own dismiss keys.
+	if m.showHelp {
+		if msg.String() == "?" || msg.String() == "esc" {
+			m.showHelp = false
+		}
+		return m, nil
+	}
+
+	if msg.String() == "?" {
+		m.showHelp = true
+		return m, nil
+	}
+
 	if m.goals.editing() {
 		var cmd tea.Cmd
 		var changed bool
