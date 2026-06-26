@@ -31,6 +31,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "saga: loading config: %v\n", err)
 		os.Exit(1)
 	}
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintf(os.Stderr, "saga: %v\n\nEdit your config: %s\n", err, cfgPath)
+		os.Exit(1)
+	}
 
 	state, err := storage.Load()
 	if err != nil {
