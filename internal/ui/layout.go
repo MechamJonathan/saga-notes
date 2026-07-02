@@ -9,6 +9,13 @@ import (
 // stackBreakpoint is the width below which panels stack vertically.
 const stackBreakpoint = 80
 
+// panelBorderRow is the absolute terminal row (0-indexed) of the top panel border.
+// View() renders: "\n"(row 0 blank) + header(rows 1-3) + "\n"(terminates row 3) + panels(row 4+).
+const panelBorderRow = 1 + headerOuterH // = 4
+
+// panelContentRow is the first content row inside the panels (one below the border).
+const panelContentRow = panelBorderRow + 1 // = 5
+
 // Panel chrome. Note how lipgloss sizing works: a style's .Width(n) sets the
 // width *including* horizontal padding but *excluding* the border, so the
 // rendered block is n+border wide and the usable text area is n-padding wide.

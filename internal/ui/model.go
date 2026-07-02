@@ -152,6 +152,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = ""
 		return m, nil
 
+	case tea.MouseMsg:
+		return m.handleMouse(msg)
+
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -305,6 +308,148 @@ func fetchWeatherCmd(cfg config.WeatherConfig) tea.Cmd {
 		w, err := weather.Fetch(ctx, cfg)
 		return weatherMsg{w: w, err: err}
 	}
+}
+
+func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	if m.showHelp || m.goals.editing() || m.daily.editing() {
+		return m, nil
+	}
+
+	// Scroll wheel: forward to the notes viewport when the right panel is active.
+	if msg.Button == tea.MouseButtonWheelUp || msg.Button == tea.MouseButtonWheelDown {
+		if m.focus == focusNotes {
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.daily.viewport.LineUp(3)
+			} else {
+				m.daily.viewport.LineDown(3)
+			}
+		}
+		return m, nil
+	}
+
+	// Only act on left-button presses.
+	if msg.Button != tea.MouseButtonLeft || msg.Action != tea.MouseActionPress {
+		return m, nil
+	}
+
+	leftW, _, stacked := m.panelOuterWidths()
+
+	if stacked {
+		// In stacked layout the top half is goals, bottom half is notes.
+		_, topH, _ := m.panelOuterHeights()
+		if msg.Y <= panelBorderRow+topH {
+			m.focus = focusGoals
+		} else {
+			m.focus = focusNotes
+		}
+		return m, nil
+	}
+
+	if msg.X < leftW {
+		// Left panel → goals.
+		m.focus = focusGoals
+		if idx := m.goalAtRow(msg.Y); idx >= 0 {
+			m.goals.cursor = idx
+			cmd := m.goals.enterEditMode()
+			return m, cmd
+		}
+	} else {
+		// Right panel → notes (exits weekly view too).
+		m.focus = focusNotes
+		if i := m.nonNegAtRow(msg.Y); i >= 0 {
+			m.daily.cursor = i
+			cmd := m.daily.enterNonNegEdit()
+			return m, cmd
+		}
+		if m.isInNotesArea(msg.Y) {
+			m.daily.cursor = m.daily.maxCur()
+			cmd := m.daily.enterNoteEdit()
+			return m, cmd
+		}
+	}
+
+	return m, nil
+}
+
+// calendarRowCount returns the number of terminal rows renderCalendar produces
+// for the month containing day.
+func calendarRowCount(day time.Time) int {
+	first := time.Date(day.Year(), day.Month(), 1, 0, 0, 0, 0, day.Location())
+	lead := int(first.Weekday())
+	daysInMonth := first.AddDate(0, 1, -1).Day()
+	weekRows := (lead + daysInMonth + 6) / 7
+	return 2 + weekRows // title + DOW header + week rows
+}
+
+// weatherRowCount returns the number of terminal rows renderWeather produces.
+func weatherRowCount(w weatherState) int {
+	if w.cache == nil {
+		return 2 // title + one status line
+	}
+	rows := 3 // title + temp/icon/desc + H/L
+	if w.cache.City != "" {
+		rows++
+	}
+	return rows
+}
+
+// nonNegAtRow returns the index into m.daily.nonNegs for the non-neg item
+// rendered at absolute terminal row y, or -1 if y doesn't land on any.
+// Right panel content layout (relative to panelContentRow):
+//
+//	row 0: day-of-week selector
+//	row 1: separator
+//	row 2: blank
+//	row 3: DAILY HABITS header
+//	rows 4..3+N: non-neg items 0..N-1
+func (m model) nonNegAtRow(y int) int {
+	nn := len(m.daily.nonNegs)
+	for i := range nn {
+		if y == panelContentRow+4+i {
+			return i
+		}
+	}
+	return -1
+}
+
+// isInNotesArea reports whether absolute terminal row y falls within the NOTES
+// section (header row and below) of the daily panel.
+// Rows after the N non-neg items: blank(1) + MOOD(1) + ENERGY(1) + blank(1) = 4 more rows
+// before the NOTES header at relative offset N+8.
+func (m model) isInNotesArea(y int) bool {
+	return y >= panelContentRow+4+len(m.daily.nonNegs)+4
+}
+
+// goalAtRow returns the m.goals.goals index of the active goal rendered at
+// absolute terminal row y, or -1 if y doesn't land on any active goal.
+func (m model) goalAtRow(y int) int {
+	first := time.Date(m.selected.Year(), m.selected.Month(), 1, 0, 0, 0, 0, m.selected.Location())
+	lead := int(first.Weekday())
+	daysInMonth := first.AddDate(0, 1, -1).Day()
+	calR := 2 + (lead+daysInMonth+6)/7
+
+	// "\n\n" separator between calendar and weather adds 1 blank row normally,
+	// but 2 if the last calendar day falls on Saturday (calendar ends with \n).
+	sep1 := 1
+	if (lead+daysInMonth)%7 == 0 {
+		sep1 = 2
+	}
+
+	wxR := weatherRowCount(m.weather)
+	// Weather never ends with \n, so its "\n\n" separator always adds 1 blank row.
+	goalsRelRow := calR + sep1 + wxR + 1
+
+	// "✺ ACTIVE GOALS" title sits at panelContentRow+goalsRelRow;
+	// active items follow one row below.
+	itemStart := panelContentRow + goalsRelRow + 1
+
+	active := m.goals.activeIndices()
+	for i, idx := range active {
+		if y == itemStart+i {
+			return idx
+		}
+	}
+	return -1
 }
 
 func truncDay(t time.Time) time.Time {
