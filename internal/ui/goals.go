@@ -113,11 +113,7 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 		return m, false, "", textinput.Blink
 	case "e":
 		if len(active) > 0 {
-			m.mode = goalEditing
-			m.input.SetValue(m.goals[m.cursor].Text)
-			m.input.CursorEnd()
-			m.input.Focus()
-			return m, false, "", textinput.Blink
+			return m, false, "", m.enterEditMode()
 		}
 	case "d":
 		if len(active) > 0 {
@@ -140,6 +136,19 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 		}
 	}
 	return m, false, "", nil
+}
+
+// enterEditMode starts editing the currently selected goal. Callers must ensure
+// a non-done goal exists at m.cursor before calling.
+func (m *goalsModel) enterEditMode() tea.Cmd {
+	if len(m.activeIndices()) == 0 {
+		return nil
+	}
+	m.mode = goalEditing
+	m.input.SetValue(m.goals[m.cursor].Text)
+	m.input.CursorEnd()
+	m.input.Focus()
+	return textinput.Blink
 }
 
 func (m goalsModel) updateInput(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {

@@ -176,11 +176,7 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 		}
 	case "e":
 		if m.cursor < len(m.nonNegs) {
-			m.mode = dailyEditNonNeg
-			m.nonNegInput.SetValue(m.nonNegs[m.cursor])
-			m.nonNegInput.CursorEnd()
-			m.nonNegInput.Focus()
-			return m, textinput.Blink
+			return m, m.enterNonNegEdit()
 		}
 		if m.cursor == mc {
 			return m, m.openEditor()
@@ -218,11 +214,7 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 		}
 	case "i", "enter":
 		if m.cursor == mc {
-			m.mode = dailyEditNote
-			m.textarea.SetValue(m.note)
-			m.textarea.CursorEnd()
-			m.textarea.Focus()
-			return m, textarea.Blink
+			return m, m.enterNoteEdit()
 		}
 	}
 	// Pass scroll events to the viewport when on the notes section.
@@ -232,6 +224,25 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 		return m, cmd
 	}
 	return m, nil
+}
+
+func (m *dailyModel) enterNonNegEdit() tea.Cmd {
+	if m.cursor >= len(m.nonNegs) {
+		return nil
+	}
+	m.mode = dailyEditNonNeg
+	m.nonNegInput.SetValue(m.nonNegs[m.cursor])
+	m.nonNegInput.CursorEnd()
+	m.nonNegInput.Focus()
+	return textinput.Blink
+}
+
+func (m *dailyModel) enterNoteEdit() tea.Cmd {
+	m.mode = dailyEditNote
+	m.textarea.SetValue(m.note)
+	m.textarea.CursorEnd()
+	m.textarea.Focus()
+	return textarea.Blink
 }
 
 func (m dailyModel) updateNonNegInput(msg tea.KeyMsg) (dailyModel, tea.Cmd) {

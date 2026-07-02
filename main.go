@@ -45,7 +45,7 @@ func main() {
 	// Request the terminal window to maximize before entering alt screen.
 	fmt.Print("\033[9;1t")
 
-	p := tea.NewProgram(ui.New(cfg, state), tea.WithAltScreen())
+	p := tea.NewProgram(ui.New(cfg, state), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	_, runErr := p.Run()
 	fmt.Print("\033[9;0t") // restore window to pre-launch size
 	if runErr != nil {
