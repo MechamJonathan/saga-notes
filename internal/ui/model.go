@@ -346,20 +346,19 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if msg.X < leftW {
-		// Left panel → goals.
+		// Left panel → goals. Click only selects; editing requires the edit key.
 		m.focus = focusGoals
 		if idx := m.goalAtRow(msg.Y); idx >= 0 {
 			m.goals.cursor = idx
-			cmd := m.goals.enterEditMode()
-			return m, cmd
+			return m, nil
 		}
 	} else {
 		// Right panel → notes (exits weekly view too).
 		m.focus = focusNotes
 		if i := m.nonNegAtRow(msg.Y); i >= 0 {
+			// Click only selects the habit; editing requires the edit key.
 			m.daily.cursor = i
-			cmd := m.daily.enterNonNegEdit()
-			return m, cmd
+			return m, nil
 		}
 		if m.isInNotesArea(msg.Y) {
 			m.daily.cursor = m.daily.maxCur()
