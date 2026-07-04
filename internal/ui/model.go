@@ -311,8 +311,40 @@ func fetchWeatherCmd(cfg config.WeatherConfig) tea.Cmd {
 }
 
 func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.showHelp || m.goals.editing() || m.daily.editing() {
+	if m.showHelp {
 		return m, nil
+	}
+
+	isLeftPress := msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress
+
+	// A left-click anywhere auto-commits and exits whichever edit mode is
+	// active (saving the in-progress text, same as its keyboard commit key),
+	// then the click below is processed normally against the new state. Any
+	// other mouse event (wheel, etc.) while editing is still ignored.
+	var exitCmd tea.Cmd
+	switch {
+	case m.goals.editing():
+		if !isLeftPress {
+			return m, nil
+		}
+		changed, status := m.goals.commitEdit()
+		if changed {
+			m.persistGoals()
+		}
+		if status != "" {
+			m.statusMsg = status
+			exitCmd = statusClearCmd()
+		}
+	case m.daily.mode == dailyEditNonNeg:
+		if !isLeftPress {
+			return m, nil
+		}
+		exitCmd = m.daily.commitNonNegEdit()
+	case m.daily.mode == dailyEditNote:
+		if !isLeftPress {
+			return m, nil
+		}
+		exitCmd = m.daily.commitNoteEdit()
 	}
 
 	// Scroll wheel: forward to the notes viewport when the right panel is active.
@@ -324,12 +356,12 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				m.daily.viewport.LineDown(3)
 			}
 		}
-		return m, nil
+		return m, exitCmd
 	}
 
 	// Only act on left-button presses.
-	if msg.Button != tea.MouseButtonLeft || msg.Action != tea.MouseActionPress {
-		return m, nil
+	if !isLeftPress {
+		return m, exitCmd
 	}
 
 	leftW, _, stacked := m.panelOuterWidths()
@@ -342,7 +374,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.focus = focusNotes
 		}
-		return m, nil
+		return m, exitCmd
 	}
 
 	if msg.X < leftW {
@@ -350,7 +382,6 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		m.focus = focusGoals
 		if idx := m.goalAtRow(msg.Y); idx >= 0 {
 			m.goals.cursor = idx
-			return m, nil
 		}
 	} else {
 		// Right panel → notes (exits weekly view too).
@@ -358,16 +389,14 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		if i := m.nonNegAtRow(msg.Y); i >= 0 {
 			// Click only selects the habit; editing requires the edit key.
 			m.daily.cursor = i
-			return m, nil
-		}
-		if m.isInNotesArea(msg.Y) {
+		} else if m.isInNotesArea(msg.Y) {
 			m.daily.cursor = m.daily.maxCur()
 			cmd := m.daily.enterNoteEdit()
-			return m, cmd
+			return m, tea.Batch(exitCmd, cmd)
 		}
 	}
 
-	return m, nil
+	return m, exitCmd
 }
 
 // calendarRowCount returns the number of terminal rows renderCalendar produces
