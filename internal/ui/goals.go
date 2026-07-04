@@ -151,26 +151,34 @@ func (m *goalsModel) enterEditMode() tea.Cmd {
 	return textinput.Blink
 }
 
+// commitEdit finishes the current add/edit operation, saving the typed text.
+// Mirrors pressing enter; returns whether persisted state changed and a
+// status label (both zero-valued if the input was empty, a no-op).
+func (m *goalsModel) commitEdit() (bool, string) {
+	text := strings.TrimSpace(m.input.Value())
+	mode := m.mode
+	m.mode = goalNormal
+	m.input.Blur()
+	if text == "" {
+		return false, ""
+	}
+	if mode == goalAdding {
+		m.goals = append(m.goals, storage.Goal{Text: text})
+		m.cursor = len(m.goals) - 1
+		return true, "goal added"
+	}
+	if len(m.goals) > 0 {
+		m.goals[m.cursor].Text = text
+		return true, "goal updated"
+	}
+	return false, ""
+}
+
 func (m goalsModel) updateInput(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
-		text := strings.TrimSpace(m.input.Value())
-		mode := m.mode
-		m.mode = goalNormal
-		m.input.Blur()
-		if text == "" {
-			return m, false, "", nil
-		}
-		var status string
-		if mode == goalAdding {
-			m.goals = append(m.goals, storage.Goal{Text: text})
-			m.cursor = len(m.goals) - 1
-			status = "goal added"
-		} else if len(m.goals) > 0 {
-			m.goals[m.cursor].Text = text
-			status = "goal updated"
-		}
-		return m, true, status, nil
+		changed, status := m.commitEdit()
+		return m, changed, status, nil
 	case "esc":
 		m.mode = goalNormal
 		m.input.Blur()

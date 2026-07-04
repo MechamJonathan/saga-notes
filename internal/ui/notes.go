@@ -245,28 +245,35 @@ func (m *dailyModel) enterNoteEdit() tea.Cmd {
 	return textarea.Blink
 }
 
+// commitNonNegEdit finishes editing/adding a habit label, saving the typed
+// text. Mirrors pressing enter; returns a persist cmd (nil if the input was
+// empty, in which case a blank "add" placeholder is removed instead).
+func (m *dailyModel) commitNonNegEdit() tea.Cmd {
+	text := strings.TrimSpace(m.nonNegInput.Value())
+	m.mode = dailyNormal
+	m.nonNegInput.Blur()
+	if text == "" {
+		// Cancel: remove the blank placeholder that was added for "add" operation.
+		if m.cursor < len(m.nonNegs) && m.nonNegs[m.cursor] == "" {
+			i := m.cursor
+			m.nonNegs = append(m.nonNegs[:i], m.nonNegs[i+1:]...)
+			if i < len(m.entry.NonNegs) {
+				m.entry.NonNegs = append(m.entry.NonNegs[:i], m.entry.NonNegs[i+1:]...)
+			}
+			if m.cursor > 0 && m.cursor >= len(m.nonNegs) {
+				m.cursor--
+			}
+		}
+		return nil
+	}
+	m.nonNegs[m.cursor] = text
+	return saveNonNegsCmd(m.nonNegs)
+}
+
 func (m dailyModel) updateNonNegInput(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
-		text := strings.TrimSpace(m.nonNegInput.Value())
-		m.mode = dailyNormal
-		m.nonNegInput.Blur()
-		if text == "" {
-			// Cancel: remove the blank placeholder that was added for "add" operation.
-			if m.cursor < len(m.nonNegs) && m.nonNegs[m.cursor] == "" {
-				i := m.cursor
-				m.nonNegs = append(m.nonNegs[:i], m.nonNegs[i+1:]...)
-				if i < len(m.entry.NonNegs) {
-					m.entry.NonNegs = append(m.entry.NonNegs[:i], m.entry.NonNegs[i+1:]...)
-				}
-				if m.cursor > 0 && m.cursor >= len(m.nonNegs) {
-					m.cursor--
-				}
-			}
-			return m, nil
-		}
-		m.nonNegs[m.cursor] = text
-		return m, saveNonNegsCmd(m.nonNegs)
+		return m, m.commitNonNegEdit()
 	case "esc":
 		m.mode = dailyNormal
 		m.nonNegInput.Blur()
@@ -288,13 +295,19 @@ func (m dailyModel) updateNonNegInput(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 	return m, cmd
 }
 
+// commitNoteEdit saves the textarea content to the note and exits edit mode.
+// Mirrors pressing esc, the notes textarea's only exit key.
+func (m *dailyModel) commitNoteEdit() tea.Cmd {
+	m.note = m.textarea.Value()
+	m.mode = dailyNormal
+	m.textarea.Blur()
+	m.refreshViewport()
+	return saveNoteCmd(m.day, m.note)
+}
+
 func (m dailyModel) updateTextarea(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 	if msg.String() == "esc" {
-		m.note = m.textarea.Value()
-		m.mode = dailyNormal
-		m.textarea.Blur()
-		m.refreshViewport()
-		return m, saveNoteCmd(m.day, m.note)
+		return m, m.commitNoteEdit()
 	}
 	var cmd tea.Cmd
 	m.textarea, cmd = m.textarea.Update(msg)
