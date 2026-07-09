@@ -124,21 +124,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.weather.cache = &cache
 		m.state.Weather = &cache
-		_ = storage.Save(m.state)
+		if err := storage.Save(m.state); err != nil {
+			m.statusMsg = "save failed: " + err.Error()
+			return m, statusClearCmd()
+		}
 		return m, nil
 
 	case nonNegsSavedMsg:
 		m.state.NonNegotiables = msg.labels
-		_ = storage.Save(m.state)
+		err := storage.Save(m.state)
 		m.layoutDaily()
 		m.refreshStreaks()
 		m.weekly.nonNegs = msg.labels
-		m.statusMsg = "habits saved"
+		if err != nil {
+			m.statusMsg = "save failed: " + err.Error()
+		} else {
+			m.statusMsg = "habits saved"
+		}
 		return m, statusClearCmd()
 
 	case noteSavedMsg:
-		m.statusMsg = "note saved"
+		if msg.err != nil {
+			m.statusMsg = "save failed: " + msg.err.Error()
+		} else {
+			m.statusMsg = "note saved"
+		}
 		return m, statusClearCmd()
+
+	case entrySavedMsg:
+		if msg.err != nil {
+			m.statusMsg = "save failed: " + msg.err.Error()
+			return m, statusClearCmd()
+		}
+		return m, nil
 
 	case editorFinishedMsg:
 		body, _ := storage.LoadNote(m.selected)
@@ -182,7 +200,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var status string
 		m.goals, changed, status, cmd = m.goals.update(msg)
 		if changed {
-			m.persistGoals()
+			if err := m.persistGoals(); err != nil {
+				status = "save failed: " + err.Error()
+			}
 		}
 		if status != "" {
 			m.statusMsg = status
@@ -242,7 +262,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var status string
 		m.goals, changed, status, cmd = m.goals.update(msg)
 		if changed {
-			m.persistGoals()
+			if err := m.persistGoals(); err != nil {
+				status = "save failed: " + err.Error()
+			}
 		}
 		if status != "" {
 			m.statusMsg = status
@@ -281,9 +303,9 @@ func (m model) changeDay(delta int) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *model) persistGoals() {
+func (m *model) persistGoals() error {
 	m.state.Goals = m.goals.goals
-	_ = storage.Save(m.state)
+	return storage.Save(m.state)
 }
 
 func (m *model) persistNonNegs() {
@@ -329,7 +351,9 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 		changed, status := m.goals.commitEdit()
 		if changed {
-			m.persistGoals()
+			if err := m.persistGoals(); err != nil {
+				status = "save failed: " + err.Error()
+			}
 		}
 		if status != "" {
 			m.statusMsg = status

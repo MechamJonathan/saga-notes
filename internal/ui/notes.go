@@ -28,15 +28,20 @@ const (
 // editorFinishedMsg is sent when an external $EDITOR session exits.
 type editorFinishedMsg struct{ err error }
 
-// noteSavedMsg signals a note write completed.
+// noteSavedMsg signals a note write completed; err is nil on success.
 type noteSavedMsg struct {
 	day  time.Time
 	body string
+	err  error
 }
 
 // nonNegsSavedMsg signals that non-negotiable labels changed and should be
 // persisted by the root model.
 type nonNegsSavedMsg struct{ labels []string }
+
+// entrySavedMsg signals a day-entry write (habit toggle, mood/energy set)
+// completed; err is nil on success.
+type entrySavedMsg struct{ err error }
 
 // dailyModel is the right-panel structured daily journal page.
 // Cursor positions:
@@ -162,7 +167,7 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 	case " ":
 		if m.cursor < len(m.nonNegs) {
 			m.entry.NonNegs[m.cursor] = !m.entry.NonNegs[m.cursor]
-			_ = storage.SaveDay(m.day, m.entry)
+			return m, saveEntryCmd(m.day, m.entry)
 		}
 	case "a":
 		if m.cursor < len(m.nonNegs) || len(m.nonNegs) == 0 {
@@ -191,8 +196,7 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 			if m.cursor > 0 && m.cursor >= len(m.nonNegs) {
 				m.cursor--
 			}
-			_ = storage.SaveDay(m.day, m.entry)
-			return m, saveNonNegsCmd(m.nonNegs)
+			return m, tea.Batch(saveEntryCmd(m.day, m.entry), saveNonNegsCmd(m.nonNegs))
 		}
 	case "1", "2", "3", "4", "5":
 		n, _ := strconv.Atoi(msg.String())
@@ -203,14 +207,14 @@ func (m dailyModel) updateNormal(msg tea.KeyMsg) (dailyModel, tea.Cmd) {
 			} else {
 				m.entry.Mood = n
 			}
-			_ = storage.SaveDay(m.day, m.entry)
+			return m, saveEntryCmd(m.day, m.entry)
 		case len(m.nonNegs) + 1: // energy
 			if m.entry.Energy == n {
 				m.entry.Energy = 0
 			} else {
 				m.entry.Energy = n
 			}
-			_ = storage.SaveDay(m.day, m.entry)
+			return m, saveEntryCmd(m.day, m.entry)
 		}
 	case "i", "enter":
 		if m.cursor == mc {
@@ -336,9 +340,16 @@ func (m dailyModel) openEditor() tea.Cmd {
 
 func saveNoteCmd(day time.Time, body string) tea.Cmd {
 	return func() tea.Msg {
-		_ = storage.SaveNote(day, strings.TrimRight(body, "\n")+"\n")
-		return noteSavedMsg{day: day, body: body}
+		err := storage.SaveNote(day, strings.TrimRight(body, "\n")+"\n")
+		return noteSavedMsg{day: day, body: body, err: err}
 	}
+}
+
+// saveEntryCmd persists the day entry (habit toggles, mood/energy) in the
+// background; the resulting entrySavedMsg carries any write error so it can
+// be surfaced in the status bar instead of failing silently.
+func saveEntryCmd(day time.Time, entry storage.DayEntry) tea.Cmd {
+	return func() tea.Msg { return entrySavedMsg{err: storage.SaveDay(day, entry)} }
 }
 
 func saveNonNegsCmd(labels []string) tea.Cmd {
