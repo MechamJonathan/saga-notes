@@ -31,8 +31,9 @@ type model struct {
 	now      time.Time
 	selected time.Time // day shown in calendar/notes
 
-	focus  focus
-	goals  goalsModel
+	focus       focus
+	lastTabTime time.Time
+	goals       goalsModel
 	daily  dailyModel
 	weekly weeklyModel
 
@@ -222,7 +223,19 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c", "q":
 		return m, tea.Quit
 	case "tab":
-		m.focus = (m.focus + 1) % 3
+		now := time.Now()
+		doubleTap := !m.lastTabTime.IsZero() && now.Sub(m.lastTabTime) < 350*time.Millisecond
+		m.lastTabTime = now
+		switch {
+		case doubleTap && m.focus != focusWeek:
+			m.focus = focusWeek
+		case m.focus == focusWeek:
+			m.focus = focusNotes
+		case m.focus == focusGoals:
+			m.focus = focusNotes
+		default:
+			m.focus = focusGoals
+		}
 		return m, nil
 	case "[":
 		if m.focus == focusWeek {

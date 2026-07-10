@@ -15,7 +15,7 @@ var helpSections = []helpSection{
 	{
 		title: "GLOBAL",
 		rows: [][2]string{
-			{"tab", "cycle focus  goals → notes → week"},
+			{"tab", "toggle panels  (double-tap → week)"},
 			{"[ / ]", "previous / next day"},
 			{"t", "jump to today"},
 			{"w", "refresh weather"},
