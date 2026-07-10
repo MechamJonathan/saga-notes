@@ -82,16 +82,24 @@ func (m model) View() string {
 	header := renderHeaderPanel(m.styles, m.now, m.width)
 	footer := m.footerLine()
 
+	if m.focus == focusWeek {
+		topH, botH, isStacked := m.panelOuterHeights()
+		fullH := topH
+		if isStacked {
+			fullH += botH
+		}
+		weekContent := m.weekly.view(contentWidth(m.width), styleHeight(fullH), m.now)
+		panel := m.styles.PanelFocus.
+			Width(styleWidth(m.width)).Height(max(1, styleHeight(fullH))).
+			Render(weekContent)
+		return "\n" + header + "\n" + panel + "\n" + footer
+	}
+
 	leftOuterW, rightOuterW, stacked := m.panelOuterWidths()
 	topH, botH, _ := m.panelOuterHeights()
 
 	leftContent := m.leftPanel(contentWidth(leftOuterW))
-	var rightContent string
-	if m.focus == focusWeek {
-		rightContent = m.weekly.view(contentWidth(rightOuterW), styleHeight(botH), m.now)
-	} else {
-		rightContent = m.daily.view(contentWidth(rightOuterW), m.focus == focusNotes, m.now)
-	}
+	rightContent := m.daily.view(contentWidth(rightOuterW), m.focus == focusNotes, m.now)
 
 	left := m.panelStyle(focusGoals).
 		Width(styleWidth(leftOuterW)).Height(max(1, styleHeight(topH))).

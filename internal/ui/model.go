@@ -401,6 +401,11 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, exitCmd
 	}
 
+	// Weekly view is full-screen; clicks don't change panel focus.
+	if m.focus == focusWeek {
+		return m, exitCmd
+	}
+
 	leftW, _, stacked := m.panelOuterWidths()
 
 	if stacked {

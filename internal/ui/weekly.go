@@ -219,5 +219,6 @@ func (m weeklyModel) view(width, _ int, now time.Time) string {
 	b.WriteString(m.styles.Selected.Render(energyLine))
 	b.WriteString("\n")
 
-	return lipgloss.NewStyle().Width(width).Render(b.String())
+	content := b.String()
+	return lipgloss.Place(width, lipgloss.Height(content), lipgloss.Center, lipgloss.Top, content)
 }
