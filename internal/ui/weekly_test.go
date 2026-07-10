@@ -176,25 +176,43 @@ func TestWeeklyShiftWeek(t *testing.T) {
 
 // --- integration: tab cycling and weekly view rendering ---
 
-func TestTabCyclesThreeFoci(t *testing.T) {
+func TestTabNavigation(t *testing.T) {
 	m := newTestModel(t)
 	if m.focus != focusGoals {
 		t.Fatalf("initial focus = %v, want focusGoals", m.focus)
 	}
+
+	// Single tab: Goals → Notes
+	m.lastTabTime = time.Now().Add(-time.Second)
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
 	m = next.(model)
 	if m.focus != focusNotes {
-		t.Errorf("after 1st tab: focus = %v, want focusNotes", m.focus)
+		t.Errorf("single tab from goals: focus = %v, want focusNotes", m.focus)
 	}
-	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
-	m = next.(model)
-	if m.focus != focusWeek {
-		t.Errorf("after 2nd tab: focus = %v, want focusWeek", m.focus)
-	}
+
+	// Single tab: Notes → Goals
+	m.lastTabTime = time.Now().Add(-time.Second)
 	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
 	m = next.(model)
 	if m.focus != focusGoals {
-		t.Errorf("after 3rd tab: focus = %v, want focusGoals (full cycle)", m.focus)
+		t.Errorf("single tab from notes: focus = %v, want focusGoals", m.focus)
+	}
+
+	// Double-tap: → Weekly (reset timer so first tap is single, second is quick double)
+	m.lastTabTime = time.Now().Add(-time.Second)
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab}) // 1st tap (single → Notes)
+	next, _ = next.(model).Update(tea.KeyMsg{Type: tea.KeyTab}) // 2nd tap quick → Weekly
+	m = next.(model)
+	if m.focus != focusWeek {
+		t.Errorf("double-tap: focus = %v, want focusWeek", m.focus)
+	}
+
+	// Tab from weekly: → Notes
+	m.lastTabTime = time.Now().Add(-time.Second)
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = next.(model)
+	if m.focus != focusNotes {
+		t.Errorf("tab from weekly: focus = %v, want focusNotes", m.focus)
 	}
 }
 
