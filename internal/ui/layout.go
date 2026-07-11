@@ -120,7 +120,16 @@ func (m model) leftPanel(innerW int) string {
 	cal := renderCalendar(m.styles, m.selected, m.now, m.selected)
 	wx := renderWeather(m.styles, m.weather)
 	goals := m.goals.view(innerW, m.focus == focusGoals)
-	return strings.Join([]string{cal, wx, goals}, "\n\n")
+
+	// Align ACTIVE GOALS with the NOTES header in the right panel.
+	// Right panel rows before NOTES = 9 + len(nonNegs).
+	// Left panel rows before ACTIVE GOALS = N_cal + sep1 + N_wx + sep2 + 1.
+	// Setting equal: sep1 + sep2 = 8 + len(nonNegs) - N_cal - N_wx.
+	sepTotal := 8 + len(m.daily.nonNegs) - strings.Count(cal, "\n") - strings.Count(wx, "\n")
+	sep1 := 1
+	sep2 := max(1, sepTotal-sep1)
+
+	return cal + strings.Repeat("\n", sep1) + wx + strings.Repeat("\n", sep2) + goals
 }
 
 // panelStyle returns the focused or blurred border for the given panel.
