@@ -203,7 +203,13 @@ func (m goalsModel) view(width int, focused bool) string {
 	}
 
 	// Active Goals section.
-	b.WriteString(m.styles.Title.Render("✺ ACTIVE GOALS"))
+	b.WriteString(lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("0")).
+		Background(m.styles.Accent).
+		Width(width).
+		PaddingLeft(1).
+		Render("✺ ACTIVE GOALS"))
 	b.WriteString("\n")
 
 	if len(active) == 0 && m.mode != goalAdding {
