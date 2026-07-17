@@ -20,6 +20,7 @@ type Styles struct {
 	Header      lipgloss.Style // top header bar text
 	Footer      lipgloss.Style // bottom key-hint bar
 	Faint       lipgloss.Style // secondary/dim text
+	Normal      lipgloss.Style // primary body text (white)
 	Selected    lipgloss.Style // selected list row
 	Today       lipgloss.Style // today's calendar cell
 	Done        lipgloss.Style // completed goal text
@@ -47,6 +48,7 @@ func NewStyles(_ string) Styles {
 		Header: lipgloss.NewStyle().Foreground(teal).Bold(true),
 		Footer: lipgloss.NewStyle().Foreground(dim),
 		Faint:  lipgloss.NewStyle().Foreground(dim),
+		Normal: lipgloss.NewStyle().Foreground(lipgloss.Color("15")),
 
 		Selected: lipgloss.NewStyle().Foreground(teal).Bold(true),
 		Today: lipgloss.NewStyle().

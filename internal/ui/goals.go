@@ -213,7 +213,7 @@ func (m goalsModel) view(width int, focused bool) string {
 	b.WriteString("\n")
 
 	if len(active) == 0 && m.mode != goalAdding {
-		b.WriteString(m.styles.Faint.Render("  no active goals — press a to add"))
+		b.WriteString(m.styles.Faint.Render("  no active goals"))
 		b.WriteString("\n")
 	}
 
@@ -231,7 +231,7 @@ func (m goalsModel) view(width int, focused bool) string {
 		if focused && i == m.cursor {
 			label = m.styles.Selected.Render("☐ " + g.Text)
 		} else {
-			label = m.styles.Faint.Render("☐ " + g.Text)
+			label = m.styles.Normal.Render("☐ " + g.Text)
 		}
 		b.WriteString(cur + label + "\n")
 	}
@@ -239,6 +239,9 @@ func (m goalsModel) view(width int, focused bool) string {
 	if m.mode == goalAdding {
 		b.WriteString("  " + m.styles.Faint.Render("☐") + " " + m.input.View() + "\n")
 	}
+
+	b.WriteString(m.styles.Faint.Render("  press a to add"))
+	b.WriteString("\n")
 
 	// Recently Completed section — display only, not selectable.
 	if len(completed) > 0 {

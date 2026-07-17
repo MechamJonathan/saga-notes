@@ -495,7 +495,7 @@ func (m dailyModel) renderNonNeg(i int, label string, done bool, focused bool, s
 	case focused && m.cursor == i:
 		item = m.styles.Selected.Render("☐ " + label)
 	default:
-		item = m.styles.Faint.Render("☐ " + label)
+		item = m.styles.Normal.Render("☐ " + label)
 	}
 
 	var streakStr string
