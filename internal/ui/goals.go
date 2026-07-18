@@ -101,8 +101,8 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 			}
 		}
 	case " ":
-		if m.cursor < len(m.goals) {
-			m.goals[m.cursor].Done = !m.goals[m.cursor].Done
+		if len(active) > 0 {
+			m.goals[m.cursor].Done = true
 			m.clampCursor()
 			return m, true, "", nil
 		}
