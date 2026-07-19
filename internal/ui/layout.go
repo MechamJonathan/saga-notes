@@ -115,21 +115,27 @@ func (m model) View() string {
 	return "\n" + header + "\n" + panels + "\n" + footer
 }
 
+// calColWidth is the column width reserved for the calendar block, including a
+// 2-char gap before the weather block rendered to its right.
+const calColWidth = 22
+
 // leftPanel composes the calendar, weather, and goals sections.
 func (m model) leftPanel(innerW int) string {
 	cal := renderCalendar(m.styles, m.selected, m.now, m.selected)
 	wx := renderWeather(m.styles, m.weather)
 	goals := m.goals.view(innerW, m.focus == focusGoals)
 
+	// Place weather to the right of the calendar.
+	calBlock := lipgloss.NewStyle().Width(calColWidth).Render(cal)
+	wxBlock := lipgloss.NewStyle().Width(max(1, innerW-calColWidth)).Render(wx)
+	calWx := lipgloss.JoinHorizontal(lipgloss.Top, calBlock, wxBlock)
+
 	// Align ACTIVE GOALS with the NOTES header in the right panel.
 	// Right panel rows before NOTES = 9 + len(nonNegs).
-	// Left panel rows before ACTIVE GOALS = N_cal + sep1 + N_wx + sep2 + 1.
-	// Setting equal: sep1 + sep2 = 8 + len(nonNegs) - N_cal - N_wx.
-	sepTotal := 8 + len(m.daily.nonNegs) - strings.Count(cal, "\n") - strings.Count(wx, "\n")
-	sep1 := 1
-	sep2 := max(1, sepTotal-sep1)
-
-	return cal + strings.Repeat("\n", sep1) + wx + strings.Repeat("\n", sep2) + goals
+	// Left panel rows before ACTIVE GOALS = N_calWx + sep + 1.
+	// Setting equal: sep = 8 + len(nonNegs) - N_calWx.
+	sep := max(1, 8+len(m.daily.nonNegs)-strings.Count(calWx, "\n"))
+	return calWx + strings.Repeat("\n", sep) + goals
 }
 
 // panelStyle returns the focused or blurred border for the given panel.
