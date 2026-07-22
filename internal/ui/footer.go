@@ -18,7 +18,7 @@ func renderFooter(s Styles, m model) string {
 	case m.goals.editing():
 		hints = []string{"enter save", "esc cancel"}
 	case m.focus == focusWeek:
-		hints = []string{"tab notes", "↑↓ move", "enter open day", "[ ] week", "t today", "? help", "q quit"}
+		hints = []string{"tab notes", "↑↓ move", "enter open day", "[ ] week", "t today", "m metric", "? help", "q quit"}
 	case m.focus == focusNotes:
 		mc := m.daily.maxCur()
 		nn := len(m.daily.nonNegs)
