@@ -12,11 +12,14 @@ import (
 )
 
 type weeklyModel struct {
-	cursor  int // 0–6, Mon=0 … Sun=6
-	anchor  time.Time
-	days    [7]storage.DayEntry
-	nonNegs []string
-	styles  Styles
+	cursor     int // 0–6, Mon=0 … Sun=6
+	anchor     time.Time
+	days       [7]storage.DayEntry
+	nonNegs    []string
+	styles     Styles
+	heatMetric int // 0=combined 1=habits 2=mood 3=energy
+	monthDays  []storage.DayEntry
+	monthStart time.Time
 }
 
 // weekStart returns midnight of the Monday that contains t.
@@ -44,12 +47,15 @@ func newWeekly(styles Styles, nonNegs []string, today time.Time) weeklyModel {
 	if wd == time.Sunday {
 		cursor = 6
 	}
+	monthDays, monthStart := loadMonthDays(anchor)
 	return weeklyModel{
-		cursor:  cursor,
-		anchor:  anchor,
-		days:    loadWeekDays(anchor),
-		nonNegs: nonNegs,
-		styles:  styles,
+		cursor:     cursor,
+		anchor:     anchor,
+		days:       loadWeekDays(anchor),
+		nonNegs:    nonNegs,
+		styles:     styles,
+		monthDays:  monthDays,
+		monthStart: monthStart,
 	}
 }
 
@@ -57,6 +63,7 @@ func newWeekly(styles Styles, nonNegs []string, today time.Time) weeklyModel {
 func (m weeklyModel) shiftWeek(delta int) weeklyModel {
 	m.anchor = m.anchor.AddDate(0, 0, delta*7)
 	m.days = loadWeekDays(m.anchor)
+	m.monthDays, m.monthStart = loadMonthDays(m.anchor)
 	return m
 }
 
@@ -74,6 +81,8 @@ func (m weeklyModel) update(msg tea.KeyMsg) (weeklyModel, time.Time) {
 		}
 	case "enter":
 		return m, m.anchor.AddDate(0, 0, m.cursor)
+	case "m":
+		m.heatMetric = (m.heatMetric + 1) % 4
 	}
 	return m, time.Time{}
 }
@@ -145,8 +154,150 @@ func sparkline(data []storage.DayEntry, sel func(storage.DayEntry) int) string {
 	return sb.String()
 }
 
-func (m weeklyModel) view(width, _ int, now time.Time) string {
-	today := truncDay(now)
+var heatMetricLabels = []string{"combined", "habits", "mood", "energy"}
+
+var (
+	heatStyleNone = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	heatStyleLow  = lipgloss.NewStyle().Foreground(lipgloss.Color("#1a8a84"))
+	heatStyleMid  = lipgloss.NewStyle().Foreground(lipgloss.Color("#2de2d2"))
+	heatStyleHigh = lipgloss.NewStyle().Foreground(lipgloss.Color("#2de2d2")).Bold(true)
+)
+
+func heatCellStyle(score float64) lipgloss.Style {
+	switch {
+	case score < 0:
+		return heatStyleNone
+	case score < 0.34:
+		return heatStyleLow
+	case score < 0.67:
+		return heatStyleMid
+	default:
+		return heatStyleHigh
+	}
+}
+
+// heatScore returns 0–1 for the given metric, or -1 if no data is available.
+func heatScore(e storage.DayEntry, metric, numHabits int) float64 {
+	switch metric {
+	case 1: // habits
+		if numHabits == 0 {
+			return -1
+		}
+		done := 0
+		for i, v := range e.NonNegs {
+			if i < numHabits && v {
+				done++
+			}
+		}
+		return float64(done) / float64(numHabits)
+	case 2: // mood
+		if e.Mood == 0 {
+			return -1
+		}
+		return float64(e.Mood) / 5.0
+	case 3: // energy
+		if e.Energy == 0 {
+			return -1
+		}
+		return float64(e.Energy) / 5.0
+	default: // combined
+		var scores []float64
+		if numHabits > 0 {
+			done := 0
+			for i, v := range e.NonNegs {
+				if i < numHabits && v {
+					done++
+				}
+			}
+			scores = append(scores, float64(done)/float64(numHabits))
+		}
+		if e.Mood > 0 {
+			scores = append(scores, float64(e.Mood)/5.0)
+		}
+		if e.Energy > 0 {
+			scores = append(scores, float64(e.Energy)/5.0)
+		}
+		if len(scores) == 0 {
+			return -1
+		}
+		sum := 0.0
+		for _, s := range scores {
+			sum += s
+		}
+		return sum / float64(len(scores))
+	}
+}
+
+// loadMonthDays loads every day in the month containing anchor.
+// Returns the entries slice and the first day of that month.
+func loadMonthDays(anchor time.Time) ([]storage.DayEntry, time.Time) {
+	start := truncDay(time.Date(anchor.Year(), anchor.Month(), 1, 0, 0, 0, 0, anchor.Location()))
+	n := start.AddDate(0, 1, -1).Day()
+	days := make([]storage.DayEntry, n)
+	for i := range n {
+		days[i], _ = storage.LoadDay(start.AddDate(0, 0, i))
+	}
+	return days, start
+}
+
+// renderHeatMap builds a GitHub-style monthly calendar grid shaded by daily score.
+func (m weeklyModel) renderHeatMap(today time.Time) string {
+	var b strings.Builder
+	numHabits := len(m.nonNegs)
+	n := len(m.monthDays)
+
+	header := fmt.Sprintf(" %s %d  ·  m: %s",
+		strings.ToUpper(m.monthStart.Month().String()),
+		m.monthStart.Year(),
+		heatMetricLabels[m.heatMetric],
+	)
+	b.WriteString(m.styles.Title.Render(header))
+	b.WriteString("\n")
+	b.WriteString(m.styles.Faint.Render(" Su Mo Tu We Th Fr Sa"))
+	b.WriteString("\n")
+
+	col := int(m.monthStart.Weekday()) // Sunday=0 offset for the first of the month
+	var rowCells []string
+	for range col {
+		rowCells = append(rowCells, "  ")
+	}
+
+	for day := 1; day <= n; day++ {
+		entry := m.monthDays[day-1]
+		date := m.monthStart.AddDate(0, 0, day-1)
+		isToday := date.Equal(today)
+		isFuture := date.After(today)
+
+		cellText := fmt.Sprintf("%2d", day)
+		var styled string
+		switch {
+		case isToday:
+			styled = m.styles.Today.Render(cellText)
+		case isFuture:
+			styled = m.styles.Faint.Render(cellText)
+		default:
+			styled = heatCellStyle(heatScore(entry, m.heatMetric, numHabits)).Render(cellText)
+		}
+		rowCells = append(rowCells, styled)
+		col++
+
+		if col == 7 || day == n {
+			for col < 7 {
+				rowCells = append(rowCells, "  ")
+				col++
+			}
+			b.WriteString(" ")
+			b.WriteString(strings.Join(rowCells, " "))
+			b.WriteString("\n")
+			rowCells = nil
+			col = 0
+		}
+	}
+
+	return b.String()
+}
+
+func (m weeklyModel) renderWeeklyStats(today time.Time) string {
 	total := len(m.nonNegs)
 	var b strings.Builder
 
@@ -219,6 +370,13 @@ func (m weeklyModel) view(width, _ int, now time.Time) string {
 	b.WriteString(m.styles.Selected.Render(energyLine))
 	b.WriteString("\n")
 
-	content := b.String()
-	return lipgloss.Place(width, lipgloss.Height(content), lipgloss.Center, lipgloss.Top, content)
+	return b.String()
+}
+
+func (m weeklyModel) view(width, _ int, now time.Time) string {
+	today := truncDay(now)
+	left := lipgloss.NewStyle().PaddingRight(6).Render(m.renderWeeklyStats(today))
+	right := m.renderHeatMap(today)
+	joined := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+	return lipgloss.Place(width, lipgloss.Height(joined), lipgloss.Center, lipgloss.Top, joined)
 }

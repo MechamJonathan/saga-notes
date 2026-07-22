@@ -52,6 +52,7 @@ var helpSections = []helpSection{
 			{"enter", "open selected day in journal"},
 			{"[ / ]", "previous / next week"},
 			{"t", "jump to current week"},
+			{"m", "cycle heat map metric  (combined / habits / mood / energy)"},
 		},
 	},
 }
