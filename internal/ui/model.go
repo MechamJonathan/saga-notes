@@ -45,7 +45,7 @@ type model struct {
 
 // New builds the root model from loaded config and state.
 func New(cfg config.Config, state storage.State) model {
-	styles := NewStyles(cfg.Accent)
+	styles := NewStyles(cfg.Theme)
 	now := time.Now()
 	day := truncDay(now)
 
@@ -254,6 +254,22 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "w":
 		m.weather.loading = m.weather.cache == nil
 		return m, fetchWeatherCmd(m.cfg.Weather)
+	case "T":
+		idx := 0
+		for i, t := range themeOrder {
+			if t == m.cfg.Theme {
+				idx = (i + 1) % len(themeOrder)
+				break
+			}
+		}
+		m.cfg.Theme = themeOrder[idx]
+		m.styles = NewStyles(m.cfg.Theme)
+		m.goals.styles = m.styles
+		m.daily.styles = m.styles
+		m.weekly.styles = m.styles
+		_ = config.Save(m.cfg)
+		m.statusMsg = "theme: " + m.cfg.Theme
+		return m, statusClearCmd()
 	}
 
 	if m.focus == focusWeek {

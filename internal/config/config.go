@@ -13,6 +13,7 @@ import (
 // Config is the on-disk user configuration.
 type Config struct {
 	Accent  string        `toml:"accent"` // hex accent color, e.g. "#4ec9b0"
+	Theme   string        `toml:"theme"`  // color theme: "teal" (default) or "amber"
 	Weather WeatherConfig `toml:"weather"`
 	Journal JournalConfig `toml:"journal"`
 }
@@ -36,6 +37,7 @@ type WeatherConfig struct {
 func Default() Config {
 	return Config{
 		Accent: "#4ec9b0",
+		Theme:  "teal",
 		Weather: WeatherConfig{
 			Units: "imperial",
 		},
@@ -108,6 +110,9 @@ func (c *Config) applyDefaults() {
 	d := Default()
 	if c.Accent == "" {
 		c.Accent = d.Accent
+	}
+	if c.Theme == "" {
+		c.Theme = d.Theme
 	}
 	if c.Weather.Units == "" {
 		c.Weather.Units = d.Weather.Units
