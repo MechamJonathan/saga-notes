@@ -2,11 +2,20 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
-// Single-hue palette — everything derives from one phosphor teal.
-const (
-	teal    = lipgloss.Color("#2de2d2") // primary accent
-	tealDim = lipgloss.Color("#1a8a84") // darker teal — focused border, today bg
-)
+// palette holds the two accent shades that define a theme.
+type palette struct {
+	accent    lipgloss.Color // bright accent — titles, borders, selected items
+	accentDim lipgloss.Color // darker accent — today cell background, heat map low tier
+}
+
+// themePalettes maps theme names to their color palettes.
+var themePalettes = map[string]palette{
+	"teal":  {accent: "#2de2d2", accentDim: "#1a8a84"},
+	"amber": {accent: "#fbbf24", accentDim: "#92400e"},
+}
+
+// themeOrder defines the cycle order for the in-app T keybinding.
+var themeOrder = []string{"teal", "amber"}
 
 // Styles holds the lipgloss styles for the UI.
 type Styles struct {
@@ -26,10 +35,23 @@ type Styles struct {
 	Done        lipgloss.Style // completed goal text
 	ProgressOn  lipgloss.Style // filled progress segment
 	ProgressOff lipgloss.Style // empty progress segment
+
+	// Heat map tiers for the monthly calendar in the weekly view.
+	HeatNone lipgloss.Style // no data
+	HeatLow  lipgloss.Style // 0–33%
+	HeatMid  lipgloss.Style // 34–66%
+	HeatHigh lipgloss.Style // 67–100%
 }
 
-// NewStyles builds the single-teal style set.
-func NewStyles(_ string) Styles {
+// NewStyles builds the style set for the named theme ("teal", "amber", …).
+// Unknown names fall back to teal.
+func NewStyles(theme string) Styles {
+	p, ok := themePalettes[theme]
+	if !ok {
+		p = themePalettes["teal"]
+	}
+	accent := p.accent
+	accentDim := p.accentDim
 	dim := lipgloss.Color("240")
 
 	panel := lipgloss.NewStyle().
@@ -37,28 +59,33 @@ func NewStyles(_ string) Styles {
 		Padding(0, 2)
 
 	return Styles{
-		Accent: teal,
+		Accent: accent,
 		Dim:    dim,
 
 		App:        lipgloss.NewStyle(),
-		PanelFocus: panel.BorderForeground(teal),
+		PanelFocus: panel.BorderForeground(accent),
 		PanelBlur:  panel.BorderForeground(dim),
 
-		Title:  lipgloss.NewStyle().Foreground(teal).Bold(true),
-		Header: lipgloss.NewStyle().Foreground(teal).Bold(true),
+		Title:  lipgloss.NewStyle().Foreground(accent).Bold(true),
+		Header: lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Footer: lipgloss.NewStyle().Foreground(dim),
 		Faint:  lipgloss.NewStyle().Foreground(dim),
 		Normal: lipgloss.NewStyle().Foreground(lipgloss.Color("15")),
 
-		Selected: lipgloss.NewStyle().Foreground(teal).Bold(true),
+		Selected: lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Today: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("0")).
-			Background(tealDim).
+			Background(accentDim).
 			Bold(true),
 		Done: lipgloss.NewStyle().Foreground(dim).Strikethrough(true),
 
-		ProgressOn:  lipgloss.NewStyle().Foreground(teal),
+		ProgressOn:  lipgloss.NewStyle().Foreground(accent),
 		ProgressOff: lipgloss.NewStyle().Foreground(dim),
+
+		HeatNone: lipgloss.NewStyle().Foreground(dim),
+		HeatLow:  lipgloss.NewStyle().Foreground(accentDim),
+		HeatMid:  lipgloss.NewStyle().Foreground(accent),
+		HeatHigh: lipgloss.NewStyle().Foreground(accent).Bold(true),
 	}
 }
 

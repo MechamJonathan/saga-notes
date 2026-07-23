@@ -156,23 +156,16 @@ func sparkline(data []storage.DayEntry, sel func(storage.DayEntry) int) string {
 
 var heatMetricLabels = []string{"combined", "habits", "mood", "energy"}
 
-var (
-	heatStyleNone = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	heatStyleLow  = lipgloss.NewStyle().Foreground(lipgloss.Color("#1a8a84"))
-	heatStyleMid  = lipgloss.NewStyle().Foreground(lipgloss.Color("#2de2d2"))
-	heatStyleHigh = lipgloss.NewStyle().Foreground(lipgloss.Color("#2de2d2")).Bold(true)
-)
-
-func heatCellStyle(score float64) lipgloss.Style {
+func heatCellStyle(score float64, s Styles) lipgloss.Style {
 	switch {
 	case score < 0:
-		return heatStyleNone
+		return s.HeatNone
 	case score < 0.34:
-		return heatStyleLow
+		return s.HeatLow
 	case score < 0.67:
-		return heatStyleMid
+		return s.HeatMid
 	default:
-		return heatStyleHigh
+		return s.HeatHigh
 	}
 }
 
@@ -276,7 +269,7 @@ func (m weeklyModel) renderHeatMap(today time.Time) string {
 		case isFuture:
 			styled = m.styles.Faint.Render(cellText)
 		default:
-			styled = heatCellStyle(heatScore(entry, m.heatMetric, numHabits)).Render(cellText)
+			styled = heatCellStyle(heatScore(entry, m.heatMetric, numHabits), m.styles).Render(cellText)
 		}
 		rowCells = append(rowCells, styled)
 		col++
