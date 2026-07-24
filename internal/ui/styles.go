@@ -2,26 +2,48 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
-// palette holds the two accent shades that define a theme.
+// palette holds the color values that define a theme.
 type palette struct {
-	accent    lipgloss.Color // bright accent — titles, borders, selected items
-	accentDim lipgloss.Color // darker accent — today cell background, heat map low tier
+	accent     lipgloss.Color // bright accent — titles, borders, selected items
+	accentDim  lipgloss.Color // darker accent — today cell background, heat map low tier
+	fg         lipgloss.Color // normal body text
+	dimFg      lipgloss.Color // faint/secondary text and blurred borders
+	contrastFg lipgloss.Color // text rendered on accent-colored backgrounds
 }
 
 // themePalettes maps theme names to their color palettes.
 var themePalettes = map[string]palette{
-	"teal":   {accent: "#2de2d2", accentDim: "#1a8a84"},
-	"amber":  {accent: "#fbbf24", accentDim: "#92400e"},
-	"nordic": {accent: "#88c0d0", accentDim: "#4c566a"},
+	"teal": {
+		accent:     "#2de2d2",
+		accentDim:  "#1a8a84",
+		fg:         "15",
+		dimFg:      "240",
+		contrastFg: "0",
+	},
+	"amber": {
+		accent:     "#fbbf24",
+		accentDim:  "#92400e",
+		fg:         "15",
+		dimFg:      "240",
+		contrastFg: "0",
+	},
+	"halloween": {
+		accent:     "#f18701", // pumpkin orange
+		accentDim:  "#3d348b", // deep purple
+		fg:         "15",
+		dimFg:      "#7678ed", // medium purple
+		contrastFg: "#f7b801", // gold — glows on purple today cell
+	},
 }
 
 // themeOrder defines the cycle order for the in-app T keybinding.
-var themeOrder = []string{"teal", "amber", "nordic"}
+var themeOrder = []string{"teal", "amber", "halloween"}
 
 // Styles holds the lipgloss styles for the UI.
 type Styles struct {
-	Accent lipgloss.Color
-	Dim    lipgloss.Color
+	Accent     lipgloss.Color
+	Dim        lipgloss.Color
+	ContrastFg lipgloss.Color
 
 	App         lipgloss.Style // outer frame
 	PanelFocus  lipgloss.Style // a focused panel border
@@ -30,7 +52,7 @@ type Styles struct {
 	Header      lipgloss.Style // top header bar text
 	Footer      lipgloss.Style // bottom key-hint bar
 	Faint       lipgloss.Style // secondary/dim text
-	Normal      lipgloss.Style // primary body text (white)
+	Normal      lipgloss.Style // primary body text
 	Selected    lipgloss.Style // selected list row
 	Today       lipgloss.Style // today's calendar cell
 	Done        lipgloss.Style // completed goal text
@@ -53,15 +75,16 @@ func NewStyles(theme string) Styles {
 	}
 	accent := p.accent
 	accentDim := p.accentDim
-	dim := lipgloss.Color("240")
+	dim := p.dimFg
 
 	panel := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		Padding(0, 2)
 
 	return Styles{
-		Accent: accent,
-		Dim:    dim,
+		Accent:     accent,
+		Dim:        dim,
+		ContrastFg: p.contrastFg,
 
 		App:        lipgloss.NewStyle(),
 		PanelFocus: panel.BorderForeground(accent),
@@ -71,11 +94,11 @@ func NewStyles(theme string) Styles {
 		Header: lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Footer: lipgloss.NewStyle().Foreground(dim),
 		Faint:  lipgloss.NewStyle().Foreground(dim),
-		Normal: lipgloss.NewStyle().Foreground(lipgloss.Color("15")),
+		Normal: lipgloss.NewStyle().Foreground(p.fg),
 
 		Selected: lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Today: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("0")).
+			Foreground(p.contrastFg).
 			Background(accentDim).
 			Bold(true),
 		Done: lipgloss.NewStyle().Foreground(dim).Strikethrough(true),

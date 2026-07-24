@@ -444,7 +444,7 @@ func (m dailyModel) habitsHdr(width int) string {
 	}
 	return lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("0")).
+		Foreground(m.styles.ContrastFg).
 		Background(m.styles.Accent).
 		Width(width).
 		Render(title + strings.Repeat(" ", gap) + right)
@@ -455,7 +455,7 @@ func (m dailyModel) habitsHdr(width int) string {
 func (m dailyModel) sectionHdr(title string, width int) string {
 	return lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("0")).
+		Foreground(m.styles.ContrastFg).
 		Background(m.styles.Accent).
 		Width(width).
 		PaddingLeft(1).

@@ -205,7 +205,7 @@ func (m goalsModel) view(width int, focused bool) string {
 	// Active Goals section.
 	b.WriteString(lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("0")).
+		Foreground(m.styles.ContrastFg).
 		Background(m.styles.Accent).
 		Width(width).
 		PaddingLeft(1).
