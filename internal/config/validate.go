@@ -8,7 +8,7 @@ import (
 
 var hexColorRe = regexp.MustCompile(`^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$`)
 
-var validThemes = map[string]bool{"teal": true, "amber": true}
+var validThemes = map[string]bool{"teal": true, "amber": true, "halloween": true}
 
 // Validate checks for invalid or inconsistent values and returns a single error
 // listing every problem found. Returns nil when the config is valid.
@@ -27,7 +27,7 @@ func (c Config) Validate() error {
 
 	if !validThemes[c.Theme] {
 		issues = append(issues, fmt.Sprintf(
-			"theme %q is not valid — choose one of: teal, amber",
+			"theme %q is not valid — choose one of: teal, amber, halloween",
 			c.Theme,
 		))
 	}

@@ -19,7 +19,7 @@ var helpSections = []helpSection{
 			{"[ / ]", "previous / next day"},
 			{"t", "jump to today"},
 			{"w", "refresh weather"},
-			{"T", "cycle theme  (teal / amber)"},
+			{"T", "cycle theme  (teal / amber / halloween)"},
 			{"?", "toggle this help"},
 			{"q", "quit"},
 		},
