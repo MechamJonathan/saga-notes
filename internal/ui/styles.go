@@ -10,12 +10,13 @@ type palette struct {
 
 // themePalettes maps theme names to their color palettes.
 var themePalettes = map[string]palette{
-	"teal":  {accent: "#2de2d2", accentDim: "#1a8a84"},
-	"amber": {accent: "#fbbf24", accentDim: "#92400e"},
+	"teal":   {accent: "#2de2d2", accentDim: "#1a8a84"},
+	"amber":  {accent: "#fbbf24", accentDim: "#92400e"},
+	"nordic": {accent: "#88c0d0", accentDim: "#4c566a"},
 }
 
 // themeOrder defines the cycle order for the in-app T keybinding.
-var themeOrder = []string{"teal", "amber"}
+var themeOrder = []string{"teal", "amber", "nordic"}
 
 // Styles holds the lipgloss styles for the UI.
 type Styles struct {
