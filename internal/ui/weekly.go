@@ -267,7 +267,7 @@ func (m weeklyModel) renderHeatMap(today time.Time) string {
 		case isToday:
 			styled = m.styles.Today.Render(cellText)
 		case isFuture:
-			styled = m.styles.Faint.Render(cellText)
+			styled = m.styles.HeatNone.Render(cellText)
 		default:
 			styled = heatCellStyle(heatScore(entry, m.heatMetric, numHabits), m.styles).Render(cellText)
 		}

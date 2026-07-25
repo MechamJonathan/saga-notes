@@ -5,9 +5,10 @@ import "github.com/charmbracelet/lipgloss"
 // palette holds the color values that define a theme.
 type palette struct {
 	accent     lipgloss.Color // bright accent — titles, borders, selected items
-	accentDim  lipgloss.Color // darker accent — today cell background, heat map low tier
+	accentMid  lipgloss.Color // mid accent — secondary content text (forecast, weather details, hints)
+	accentDim  lipgloss.Color // dark accent — done items, heat map low tier, today cell background
 	fg         lipgloss.Color // normal body text
-	dimFg      lipgloss.Color // faint/secondary text and blurred borders
+	dimFg      lipgloss.Color // structural chrome — blurred borders, footer, progress empty
 	contrastFg lipgloss.Color // text rendered on accent-colored backgrounds
 }
 
@@ -15,6 +16,7 @@ type palette struct {
 var themePalettes = map[string]palette{
 	"teal": {
 		accent:     "#2de2d2",
+		accentMid:  "#1ab8a8",
 		accentDim:  "#1a8a84",
 		fg:         "15",
 		dimFg:      "240",
@@ -22,22 +24,16 @@ var themePalettes = map[string]palette{
 	},
 	"amber": {
 		accent:     "#fbbf24",
+		accentMid:  "#d97706",
 		accentDim:  "#92400e",
 		fg:         "15",
 		dimFg:      "240",
 		contrastFg: "0",
 	},
-	"halloween": {
-		accent:     "#f18701", // pumpkin orange
-		accentDim:  "#3d348b", // deep purple
-		fg:         "15",
-		dimFg:      "#7678ed", // medium purple
-		contrastFg: "#f7b801", // gold — glows on purple today cell
-	},
 }
 
 // themeOrder defines the cycle order for the in-app T keybinding.
-var themeOrder = []string{"teal", "amber", "halloween"}
+var themeOrder = []string{"teal", "amber"}
 
 // Styles holds the lipgloss styles for the UI.
 type Styles struct {
@@ -74,6 +70,7 @@ func NewStyles(theme string) Styles {
 		p = themePalettes["teal"]
 	}
 	accent := p.accent
+	accentMid := p.accentMid
 	accentDim := p.accentDim
 	dim := p.dimFg
 
@@ -93,7 +90,7 @@ func NewStyles(theme string) Styles {
 		Title:  lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Header: lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Footer: lipgloss.NewStyle().Foreground(dim),
-		Faint:  lipgloss.NewStyle().Foreground(dim),
+		Faint:  lipgloss.NewStyle().Foreground(accentMid),
 		Normal: lipgloss.NewStyle().Foreground(p.fg),
 
 		Selected: lipgloss.NewStyle().Foreground(accent).Bold(true),
@@ -101,12 +98,12 @@ func NewStyles(theme string) Styles {
 			Foreground(p.contrastFg).
 			Background(accentDim).
 			Bold(true),
-		Done: lipgloss.NewStyle().Foreground(dim).Strikethrough(true),
+		Done: lipgloss.NewStyle().Foreground(accentDim).Strikethrough(true),
 
 		ProgressOn:  lipgloss.NewStyle().Foreground(accent),
 		ProgressOff: lipgloss.NewStyle().Foreground(dim),
 
-		HeatNone: lipgloss.NewStyle().Foreground(dim),
+		HeatNone: lipgloss.NewStyle().Foreground(accentDim),
 		HeatLow:  lipgloss.NewStyle().Foreground(accentDim),
 		HeatMid:  lipgloss.NewStyle().Foreground(accent),
 		HeatHigh: lipgloss.NewStyle().Foreground(accent).Bold(true),

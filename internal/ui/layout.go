@@ -115,27 +115,23 @@ func (m model) View() string {
 	return "\n" + header + "\n" + panels + "\n" + footer
 }
 
-// calColWidth is the column width reserved for the calendar block, including a
-// 2-char gap before the weather block rendered to its right.
-const calColWidth = 22
-
-// leftPanel composes the calendar, weather, and goals sections.
+// leftPanel composes the calendar, weather, forecast, and goals sections,
+// stacked vertically with single blank-line separators.
 func (m model) leftPanel(innerW int) string {
-	cal := renderCalendar(m.styles, m.selected, m.now, m.selected)
-	wx := renderWeather(m.styles, m.weather)
-	goals := m.goals.view(innerW, m.focus == focusGoals)
+	cal      := renderCalendar(m.styles, m.selected, m.now, m.selected)
+	wx       := renderWeather(m.styles, m.weather)
+	goals    := m.goals.view(innerW, m.focus == focusGoals)
+	forecast := renderForecast(m.styles, m.weather.forecast, m.cfg.Weather.Units)
 
-	// Place weather to the right of the calendar.
-	calBlock := lipgloss.NewStyle().Width(calColWidth).Render(cal)
-	wxBlock := lipgloss.NewStyle().Width(max(1, innerW-calColWidth)).Render(wx)
-	calWx := lipgloss.JoinHorizontal(lipgloss.Top, calBlock, wxBlock)
+	// "\n\n" between blocks ensures exactly one blank separator line regardless
+	// of whether the preceding block ends with a trailing \n.
+	section := cal + "\n\n" + wx
+	if forecast != "" {
+		section += "\n\n" + forecast
+	}
 
-	// Align ACTIVE GOALS with the NOTES header in the right panel.
-	// Right panel rows before NOTES = 9 + len(nonNegs).
-	// Left panel rows before ACTIVE GOALS = N_calWx + sep + 1.
-	// Setting equal: sep = 8 + len(nonNegs) - N_calWx.
-	sep := max(1, 8+len(m.daily.nonNegs)-strings.Count(calWx, "\n"))
-	return calWx + strings.Repeat("\n", sep) + goals
+	sep := max(2, 8+len(m.daily.nonNegs)-strings.Count(section, "\n"))
+	return section + strings.Repeat("\n", sep) + goals
 }
 
 // panelStyle returns the focused or blurred border for the given panel.

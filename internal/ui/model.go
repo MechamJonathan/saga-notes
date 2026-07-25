@@ -79,6 +79,10 @@ type weatherMsg struct {
 	w   weather.Weather
 	err error
 }
+type forecastMsg struct {
+	days []weather.ForecastDay
+	err  error
+}
 type statusClearMsg struct{}
 
 func statusClearCmd() tea.Cmd {
@@ -89,6 +93,7 @@ func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		tickCmd(),
 		fetchWeatherCmd(m.cfg.Weather),
+		fetchForecastCmd(m.cfg.Weather),
 	)
 }
 
@@ -103,7 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.now = time.Now()
 		var cmd tea.Cmd
 		if m.now.Second() == 0 && m.now.Minute()%10 == 0 {
-			cmd = fetchWeatherCmd(m.cfg.Weather)
+			cmd = tea.Batch(fetchWeatherCmd(m.cfg.Weather), fetchForecastCmd(m.cfg.Weather))
 		}
 		return m, tea.Batch(tickCmd(), cmd)
 
@@ -128,6 +133,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err := storage.Save(m.state); err != nil {
 			m.statusMsg = "save failed: " + err.Error()
 			return m, statusClearCmd()
+		}
+		return m, nil
+
+	case forecastMsg:
+		if msg.err == nil {
+			m.weather.forecast = msg.days
 		}
 		return m, nil
 
@@ -253,7 +264,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.jumpToday()
 	case "w":
 		m.weather.loading = m.weather.cache == nil
-		return m, fetchWeatherCmd(m.cfg.Weather)
+		return m, tea.Batch(fetchWeatherCmd(m.cfg.Weather), fetchForecastCmd(m.cfg.Weather))
 	case "T":
 		idx := 0
 		for i, t := range themeOrder {
@@ -358,6 +369,15 @@ func fetchWeatherCmd(cfg config.WeatherConfig) tea.Cmd {
 		defer cancel()
 		w, err := weather.Fetch(ctx, cfg)
 		return weatherMsg{w: w, err: err}
+	}
+}
+
+func fetchForecastCmd(cfg config.WeatherConfig) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		days, err := weather.FetchForecast(ctx, cfg)
+		return forecastMsg{days: days, err: err}
 	}
 }
 
@@ -514,16 +534,19 @@ func (m model) goalAtRow(y int) int {
 	daysInMonth := first.AddDate(0, 1, -1).Day()
 	calR := 2 + (lead+daysInMonth+6)/7
 
-	// "\n\n" separator between calendar and weather adds 1 blank row normally,
-	// but 2 if the last calendar day falls on Saturday (calendar ends with \n).
-	sep1 := 1
-	if (lead+daysInMonth)%7 == 0 {
-		sep1 = 2
-	}
-
 	wxR := weatherRowCount(m.weather)
-	// Weather never ends with \n, so its "\n\n" separator always adds 1 blank row.
-	goalsRelRow := calR + sep1 + wxR + 1
+	fcR := len(m.weather.forecast)
+	// Left panel stacks: cal + "\n\n" + wx + "\n\n" + forecast + sep + goals.
+	// "\n\n" always contributes exactly 1 blank line after each block:
+	//   - after calendar: +2 newlines (but calendar may end with \n so net +1 or +2)
+	//   - after weather:  +2 newlines (weather never ends with \n, so net +1 blank)
+	// We use +2 for cal→wx (conservative; the Saturday edge case adds an extra \n
+	// from renderCalendar but that only shifts sep by 1, which is clamped to min 1).
+	forecastSep := 0
+	if fcR > 0 {
+		forecastSep = 2
+	}
+	goalsRelRow := calR + 2 + wxR + forecastSep + fcR
 
 	// "✺ ACTIVE GOALS" title sits at panelContentRow+goalsRelRow;
 	// active items follow one row below.
