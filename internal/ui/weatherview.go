@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"saga-notes/internal/storage"
+	"saga-notes/internal/weather"
 )
 
 // weatherState bundles everything the weather block needs to render.
 type weatherState struct {
-	cache   *storage.WeatherCache
-	unit    string // "°F" / "°C"
-	loading bool
-	err     error
+	cache    *storage.WeatherCache
+	forecast []weather.ForecastDay
+	unit     string // "°F" / "°C"
+	loading  bool
+	err      error
 }
 
 // renderWeather draws the compact left-panel weather block.
@@ -46,6 +48,29 @@ func renderWeather(s Styles, w weatherState) string {
 		b.WriteString(s.Faint.Render("  " + stale))
 	}
 	return b.String()
+}
+
+// renderForecast draws 4 compact forecast rows below the current-weather block.
+// Returns an empty string when no forecast data is available.
+func renderForecast(s Styles, days []weather.ForecastDay, units string) string {
+	if len(days) == 0 {
+		return ""
+	}
+	unit := "°C"
+	if units == "imperial" {
+		unit = "°F"
+	}
+	var lines []string
+	for _, d := range days {
+		pop := ""
+		if d.Pop > 20 {
+			pop = fmt.Sprintf("  %d%%", d.Pop)
+		}
+		row := fmt.Sprintf("%-3s  %s  H %.0f%s  L %.0f%s%s",
+			d.Date.Format("Mon"), d.Icon, d.High, unit, d.Low, unit, pop)
+		lines = append(lines, s.Faint.Render(row))
+	}
+	return strings.Join(lines, "\n")
 }
 
 // weatherErrHint turns a fetch error into a short user-facing hint.
