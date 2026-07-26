@@ -68,7 +68,13 @@ func New(cfg config.Config, state storage.State) model {
 		daily:    newDaily(styles, nonNegs, streaks, day, entry, note),
 		weekly:   newWeekly(styles, nonNegs, now),
 	}
-	m.weather = weatherState{cache: state.Weather, unit: cfg.TempUnit(), loading: true}
+	m.weather = weatherState{
+		cache:   state.Weather,
+		unit:    cfg.TempUnit(),
+		lat:     cfg.Weather.Lat,
+		lon:     cfg.Weather.Lon,
+		loading: true,
+	}
 	return m
 }
 
@@ -495,6 +501,9 @@ func weatherRowCount(w weatherState) int {
 	rows := 3 // title + temp/icon/desc + H/L
 	if w.cache.City != "" {
 		rows++
+	}
+	if w.lat != 0 || w.lon != 0 {
+		rows++ // sunrise/sunset line
 	}
 	return rows
 }

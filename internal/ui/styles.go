@@ -1,11 +1,12 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+)
 
 // palette holds the color values that define a theme.
 type palette struct {
 	accent     lipgloss.Color // bright accent — titles, borders, selected items
-	accentMid  lipgloss.Color // mid accent — secondary content text (forecast, weather details, hints)
 	accentDim  lipgloss.Color // dark accent — done items, heat map low tier, today cell background
 	fg         lipgloss.Color // normal body text
 	dimFg      lipgloss.Color // structural chrome — blurred borders, footer, progress empty
@@ -16,7 +17,6 @@ type palette struct {
 var themePalettes = map[string]palette{
 	"teal": {
 		accent:     "#2de2d2",
-		accentMid:  "#1ab8a8",
 		accentDim:  "#1a8a84",
 		fg:         "15",
 		dimFg:      "240",
@@ -24,7 +24,6 @@ var themePalettes = map[string]palette{
 	},
 	"amber": {
 		accent:     "#fbbf24",
-		accentMid:  "#d97706",
 		accentDim:  "#92400e",
 		fg:         "15",
 		dimFg:      "240",
@@ -38,6 +37,7 @@ var themeOrder = []string{"teal", "amber"}
 // Styles holds the lipgloss styles for the UI.
 type Styles struct {
 	Accent     lipgloss.Color
+	AccentDim  lipgloss.Color
 	Dim        lipgloss.Color
 	ContrastFg lipgloss.Color
 
@@ -45,6 +45,7 @@ type Styles struct {
 	PanelFocus  lipgloss.Style // a focused panel border
 	PanelBlur   lipgloss.Style // an unfocused panel border
 	Title       lipgloss.Style // section headings ("GOALS", "NOTES")
+	Divider     lipgloss.Style // horizontal rule between left-panel sections
 	Header      lipgloss.Style // top header bar text
 	Footer      lipgloss.Style // bottom key-hint bar
 	Faint       lipgloss.Style // secondary/dim text
@@ -70,7 +71,6 @@ func NewStyles(theme string) Styles {
 		p = themePalettes["teal"]
 	}
 	accent := p.accent
-	accentMid := p.accentMid
 	accentDim := p.accentDim
 	dim := p.dimFg
 
@@ -80,6 +80,7 @@ func NewStyles(theme string) Styles {
 
 	return Styles{
 		Accent:     accent,
+		AccentDim:  accentDim,
 		Dim:        dim,
 		ContrastFg: p.contrastFg,
 
@@ -87,11 +88,12 @@ func NewStyles(theme string) Styles {
 		PanelFocus: panel.BorderForeground(accent),
 		PanelBlur:  panel.BorderForeground(dim),
 
-		Title:  lipgloss.NewStyle().Foreground(accent).Bold(true),
-		Header: lipgloss.NewStyle().Foreground(accent).Bold(true),
-		Footer: lipgloss.NewStyle().Foreground(dim),
-		Faint:  lipgloss.NewStyle().Foreground(accentMid),
-		Normal: lipgloss.NewStyle().Foreground(p.fg),
+		Title:   lipgloss.NewStyle().Foreground(accent).Bold(true),
+		Divider: lipgloss.NewStyle().Foreground(accentDim),
+		Header:  lipgloss.NewStyle().Foreground(accent).Bold(true),
+		Footer:  lipgloss.NewStyle().Foreground(dim),
+		Faint:   lipgloss.NewStyle().Foreground(accentDim),
+		Normal:  lipgloss.NewStyle().Foreground(p.fg),
 
 		Selected: lipgloss.NewStyle().Foreground(accent).Bold(true),
 		Today: lipgloss.NewStyle().

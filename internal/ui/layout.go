@@ -115,23 +115,29 @@ func (m model) View() string {
 	return "\n" + header + "\n" + panels + "\n" + footer
 }
 
+// sectionDivider returns a themed horizontal rule the width of the left panel.
+func sectionDivider(s Styles, w int) string {
+	return s.Divider.Render(strings.Repeat("─", w))
+}
+
 // leftPanel composes the calendar, weather, forecast, and goals sections,
-// stacked vertically with single blank-line separators.
+// stacked vertically with box-drawing rule separators.
 func (m model) leftPanel(innerW int) string {
 	cal      := renderCalendar(m.styles, m.selected, m.now, m.selected)
-	wx       := renderWeather(m.styles, m.weather)
+	wx       := renderWeather(m.styles, m.weather, m.now)
 	goals    := m.goals.view(innerW, m.focus == focusGoals)
 	forecast := renderForecast(m.styles, m.weather.forecast, m.cfg.Weather.Units)
+	div      := sectionDivider(m.styles, innerW)
 
-	// "\n\n" between blocks ensures exactly one blank separator line regardless
-	// of whether the preceding block ends with a trailing \n.
-	section := cal + "\n\n" + wx
+	// Each "\n" + div + "\n" counts the same newlines as the old "\n\n",
+	// so the sep formula and goalAtRow() need no changes.
+	section := cal + "\n" + div + "\n" + wx
 	if forecast != "" {
-		section += "\n\n" + forecast
+		section += "\n" + div + "\n" + forecast
 	}
 
 	sep := max(2, 8+len(m.daily.nonNegs)-strings.Count(section, "\n"))
-	return section + strings.Repeat("\n", sep) + goals
+	return section + "\n" + div + strings.Repeat("\n", sep-1) + goals
 }
 
 // panelStyle returns the focused or blurred border for the given panel.

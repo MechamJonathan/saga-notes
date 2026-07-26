@@ -21,8 +21,8 @@ type Weather struct {
 	TempHigh float64
 	TempLow  float64
 	Desc     string
-	Icon     string // emoji glyph
-	Pop      int    // probability of precipitation, %
+	Icon string // emoji glyph
+	Pop  int    // probability of precipitation, %
 }
 
 // ErrNoAPIKey indicates the user has not configured an OpenWeatherMap key.
