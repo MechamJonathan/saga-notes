@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"saga-notes/internal/astro"
 	"saga-notes/internal/storage"
 	"saga-notes/internal/weather"
 )
@@ -13,13 +14,14 @@ import (
 type weatherState struct {
 	cache    *storage.WeatherCache
 	forecast []weather.ForecastDay
-	unit     string // "°F" / "°C"
+	unit     string  // "°F" / "°C"
+	lat, lon float64 // for sunrise/sunset calculation
 	loading  bool
 	err      error
 }
 
 // renderWeather draws the compact left-panel weather block.
-func renderWeather(s Styles, w weatherState) string {
+func renderWeather(s Styles, w weatherState, now time.Time) string {
 	var b strings.Builder
 	b.WriteString(s.Title.Render("☀ WEATHER"))
 	b.WriteString("\n")
@@ -46,6 +48,11 @@ func renderWeather(s Styles, w weatherState) string {
 
 	if stale := staleLabel(c.FetchedAt); stale != "" {
 		b.WriteString(s.Faint.Render("  " + stale))
+	}
+
+	if rise, set := astro.SunTimes(now, w.lat, w.lon); !rise.IsZero() {
+		b.WriteString("\n")
+		b.WriteString(s.Faint.Render(fmt.Sprintf("↑ %s  ↓ %s", rise.Format("3:04 PM"), set.Format("3:04 PM"))))
 	}
 	return b.String()
 }
