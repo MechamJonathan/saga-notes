@@ -68,6 +68,7 @@ func New(cfg config.Config, state storage.State) model {
 		daily:    newDaily(styles, nonNegs, streaks, day, entry, note),
 		weekly:   newWeekly(styles, nonNegs, now),
 	}
+	m.weekly.completedGoals = state.CompletedGoals
 	m.weather = weatherState{
 		cache:   state.Weather,
 		unit:    cfg.TempUnit(),
@@ -306,8 +307,17 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		var changed bool
 		var status string
+		prevCursor := m.goals.cursor
 		m.goals, changed, status, cmd = m.goals.update(msg)
 		if changed {
+			// space-key toggle-done: changed=true, status="" (add/edit/delete all set non-empty status)
+			if status == "" && prevCursor < len(m.goals.goals) {
+				m.state.CompletedGoals = append(m.state.CompletedGoals, storage.CompletedGoal{
+					Text:        m.goals.goals[prevCursor].Text,
+					CompletedAt: m.now,
+				})
+				m.weekly.completedGoals = m.state.CompletedGoals
+			}
 			if err := m.persistGoals(); err != nil {
 				status = "save failed: " + err.Error()
 			}
@@ -335,6 +345,7 @@ func (m model) jumpToday() (tea.Model, tea.Cmd) {
 	m.layoutDaily()
 	if m.focus == focusWeek {
 		m.weekly = newWeekly(m.styles, m.daily.nonNegs, m.now)
+		m.weekly.completedGoals = m.state.CompletedGoals
 	}
 	return m, nil
 }
