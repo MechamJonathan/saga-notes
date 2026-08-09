@@ -20,6 +20,8 @@ type weeklyModel struct {
 	heatMetric int // 0=combined 1=habits 2=mood 3=energy
 	monthDays  []storage.DayEntry
 	monthStart time.Time
+
+	completedGoals []storage.CompletedGoal
 }
 
 // weekStart returns midnight of the Monday that contains t.
@@ -363,6 +365,27 @@ func (m weeklyModel) renderWeeklyStats(today time.Time) string {
 	b.WriteString(m.styles.Selected.Render(energyLine))
 	b.WriteString("\n")
 
+	b.WriteString(m.renderCompletedGoals())
+
+	return b.String()
+}
+
+// renderCompletedGoals renders a dated list of completed goals, newest first.
+func (m weeklyModel) renderCompletedGoals() string {
+	var b strings.Builder
+	b.WriteString("\n")
+	b.WriteString(m.styles.Title.Render(" COMPLETED GOALS"))
+	b.WriteString("\n")
+	if len(m.completedGoals) == 0 {
+		b.WriteString(m.styles.Faint.Render("  no completed goals yet"))
+		b.WriteString("\n")
+		return b.String()
+	}
+	for i := len(m.completedGoals) - 1; i >= 0; i-- {
+		g := m.completedGoals[i]
+		date := m.styles.Faint.Render(g.CompletedAt.Format("Jan _2"))
+		b.WriteString(fmt.Sprintf("  %s  %s\n", date, g.Text))
+	}
 	return b.String()
 }
 
