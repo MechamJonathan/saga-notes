@@ -105,7 +105,7 @@ func NewStyles(theme string) Styles {
 		ProgressOn:  lipgloss.NewStyle().Foreground(accent),
 		ProgressOff: lipgloss.NewStyle().Foreground(dim),
 
-		HeatNone: lipgloss.NewStyle().Foreground(accentDim),
+		HeatNone: lipgloss.NewStyle().Foreground(dim),
 		HeatLow:  lipgloss.NewStyle().Foreground(accentDim),
 		HeatMid:  lipgloss.NewStyle().Foreground(accent),
 		HeatHigh: lipgloss.NewStyle().Foreground(accent).Bold(true),

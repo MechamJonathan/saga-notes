@@ -28,10 +28,11 @@ var helpSections = []helpSection{
 		title: "GOALS  (left panel)",
 		rows: [][2]string{
 			{"↑↓ / j k", "navigate active goals"},
-			{"space", "toggle done"},
+			{"space", "complete goal  (press space again to confirm)"},
 			{"a", "add new goal"},
 			{"e", "edit selected goal"},
-			{"d", "delete selected goal"},
+			{"d", "delete selected goal  (press d again to confirm)"},
+			{"u", "undo last deletion"},
 			{"c", "clear all completed goals"},
 		},
 	},

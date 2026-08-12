@@ -106,11 +106,14 @@ func TestAddGoalFlow(t *testing.T) {
 }
 
 func TestToggleGoal(t *testing.T) {
+	spaceKey := tea.KeyMsg{Type: tea.KeySpace}
 	m := newTestModel(t)
-	mi, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	mi, _ := m.Update(spaceKey) // first space: confirmation prompt
+	m = mi.(model)
+	mi, _ = m.Update(spaceKey) // second space: confirm
 	m = mi.(model)
 	if !m.goals.goals[0].Done {
-		t.Error("space should toggle the first goal done")
+		t.Error("space+space should toggle the first goal done")
 	}
 }
 
