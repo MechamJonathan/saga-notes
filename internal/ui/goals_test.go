@@ -79,31 +79,35 @@ func TestGoalClearNoOp(t *testing.T) {
 
 func TestGoalToggleClampsToActive(t *testing.T) {
 	// Toggle the only active goal done — cursor should remain at 0 (no active goals left)
+	spaceKey := tea.KeyMsg{Type: tea.KeySpace}
 	m := testGoals(storage.Goal{Text: "only"})
-	m2, _, _, _ := m.update(tea.KeyMsg{Type: tea.KeySpace})
-	if !m2.goals[0].Done {
-		t.Error("space should mark goal as done")
+	m2, _, _, _ := m.update(spaceKey) // first space: confirmation prompt
+	m3, _, _, _ := m2.update(spaceKey) // second space: confirm
+	if !m3.goals[0].Done {
+		t.Error("space+space should mark goal as done")
 	}
-	if m2.cursor != 0 {
-		t.Errorf("cursor = %d after toggle, want 0", m2.cursor)
+	if m3.cursor != 0 {
+		t.Errorf("cursor = %d after toggle, want 0", m3.cursor)
 	}
 }
 
 func TestGoalToggleCompletedCannotBeSelected(t *testing.T) {
 	// After toggling, cursor must always point to an active goal
+	spaceKey := tea.KeyMsg{Type: tea.KeySpace}
 	m := testGoals(
 		storage.Goal{Text: "a"},
 		storage.Goal{Text: "b"},
 		storage.Goal{Text: "c"},
 	)
 	m.cursor = 1
-	m2, _, _, _ := m.update(tea.KeyMsg{Type: tea.KeySpace})
+	m2, _, _, _ := m.update(spaceKey)  // first space: confirmation prompt
+	m3, _, _, _ := m2.update(spaceKey) // second space: confirm
 	// goal[1] is now done; cursor should move to goal[0] (closest active at or before 1)
-	if m2.goals[1].Done == false {
-		t.Error("space should mark goal[1] as done")
+	if m3.goals[1].Done == false {
+		t.Error("space+space should mark goal[1] as done")
 	}
-	if m2.goals[m2.cursor].Done {
-		t.Errorf("cursor landed on a done goal at index %d", m2.cursor)
+	if m3.goals[m3.cursor].Done {
+		t.Errorf("cursor landed on a done goal at index %d", m3.cursor)
 	}
 }
 

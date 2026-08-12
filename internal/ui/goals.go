@@ -25,13 +25,14 @@ type deletedGoal struct {
 
 // goalsModel is the interactive daily-goals list (largest left-panel section).
 type goalsModel struct {
-	goals         []storage.Goal
-	cursor        int
-	mode          goalMode
-	input         textinput.Model
-	styles        Styles
-	confirmDelete bool
-	deleted       *deletedGoal // non-nil when undo is available
+	goals           []storage.Goal
+	cursor          int
+	mode            goalMode
+	input           textinput.Model
+	styles          Styles
+	confirmDelete   bool
+	confirmComplete bool
+	deleted         *deletedGoal // non-nil when undo is available
 }
 
 func newGoals(styles Styles, goals []storage.Goal) goalsModel {
@@ -90,9 +91,12 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 		return m.updateInput(msg)
 	}
 
-	// Any key other than 'd' cancels a pending delete confirmation.
+	// Any key other than the confirmation key cancels a pending confirmation.
 	if m.confirmDelete && msg.String() != "d" {
 		m.confirmDelete = false
+	}
+	if m.confirmComplete && msg.String() != " " {
+		m.confirmComplete = false
 	}
 
 	active := m.activeIndices()
@@ -114,6 +118,11 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 		}
 	case " ":
 		if len(active) > 0 {
+			if !m.confirmComplete {
+				m.confirmComplete = true
+				return m, false, "press space again to complete  ·  esc to cancel", nil
+			}
+			m.confirmComplete = false
 			m.goals[m.cursor].Done = true
 			m.clampCursor()
 			return m, true, "", nil
