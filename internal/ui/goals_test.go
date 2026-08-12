@@ -112,15 +112,83 @@ func TestGoalDelete(t *testing.T) {
 		storage.Goal{Text: "first"},
 		storage.Goal{Text: "second"},
 	)
-	m2, changed, status, _ := m.update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	dKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
+
+	// First d: show confirmation prompt, no change yet.
+	m2, changed, status, _ := m.update(dKey)
+	if changed {
+		t.Error("first d should not change state")
+	}
+	if status != "press d again to delete  ·  esc to cancel" {
+		t.Errorf("status = %q", status)
+	}
+	if !m2.confirmDelete {
+		t.Error("confirmDelete should be set after first d")
+	}
+
+	// Second d: actually delete.
+	m3, changed, status, _ := m2.update(dKey)
 	if !changed {
-		t.Error("d should mark state as changed")
+		t.Error("second d should mark state as changed")
 	}
-	if status != "goal removed" {
-		t.Errorf("status = %q, want %q", status, "goal removed")
+	if status != "goal removed  ·  u to undo" {
+		t.Errorf("status = %q, want 'goal removed  ·  u to undo'", status)
 	}
-	if len(m2.goals) != 1 || m2.goals[0].Text != "second" {
-		t.Errorf("after delete: %+v", m2.goals)
+	if len(m3.goals) != 1 || m3.goals[0].Text != "second" {
+		t.Errorf("after delete: %+v", m3.goals)
+	}
+	if m3.deleted == nil || m3.deleted.goal.Text != "first" {
+		t.Error("deleted should hold the removed goal for undo")
+	}
+}
+
+func TestGoalDeleteCancelOnOtherKey(t *testing.T) {
+	m := testGoals(storage.Goal{Text: "first"})
+	dKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
+
+	m2, _, _, _ := m.update(dKey)
+	if !m2.confirmDelete {
+		t.Fatal("confirmDelete should be set")
+	}
+	// Any other key cancels.
+	m3, changed, _, _ := m2.update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	if changed {
+		t.Error("cancel should not change state")
+	}
+	if m3.confirmDelete {
+		t.Error("confirmDelete should be cleared after non-d key")
+	}
+	if len(m3.goals) != 1 {
+		t.Error("goal should not have been deleted")
+	}
+}
+
+func TestGoalDeleteUndo(t *testing.T) {
+	m := testGoals(
+		storage.Goal{Text: "first"},
+		storage.Goal{Text: "second"},
+	)
+	dKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
+	uKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+
+	m2, _, _, _ := m.update(dKey)
+	m3, _, _, _ := m2.update(dKey) // confirmed delete
+	if len(m3.goals) != 1 {
+		t.Fatal("goal should be deleted")
+	}
+
+	m4, changed, status, _ := m3.update(uKey)
+	if !changed {
+		t.Error("u should mark state as changed")
+	}
+	if status != "goal restored" {
+		t.Errorf("status = %q, want 'goal restored'", status)
+	}
+	if len(m4.goals) != 2 || m4.goals[0].Text != "first" {
+		t.Errorf("after undo: %+v", m4.goals)
+	}
+	if m4.deleted != nil {
+		t.Error("deleted should be nil after undo")
 	}
 }
 

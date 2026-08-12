@@ -18,13 +18,20 @@ const (
 	goalEditing
 )
 
+type deletedGoal struct {
+	goal  storage.Goal
+	index int
+}
+
 // goalsModel is the interactive daily-goals list (largest left-panel section).
 type goalsModel struct {
-	goals  []storage.Goal
-	cursor int
-	mode   goalMode
-	input  textinput.Model
-	styles Styles
+	goals         []storage.Goal
+	cursor        int
+	mode          goalMode
+	input         textinput.Model
+	styles        Styles
+	confirmDelete bool
+	deleted       *deletedGoal // non-nil when undo is available
 }
 
 func newGoals(styles Styles, goals []storage.Goal) goalsModel {
@@ -83,6 +90,11 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 		return m.updateInput(msg)
 	}
 
+	// Any key other than 'd' cancels a pending delete confirmation.
+	if m.confirmDelete && msg.String() != "d" {
+		m.confirmDelete = false
+	}
+
 	active := m.activeIndices()
 
 	switch msg.String() {
@@ -116,11 +128,31 @@ func (m goalsModel) update(msg tea.KeyMsg) (goalsModel, bool, string, tea.Cmd) {
 			return m, false, "", m.enterEditMode()
 		}
 	case "d":
-		if len(active) > 0 {
-			i := m.cursor
-			m.goals = append(m.goals[:i], m.goals[i+1:]...)
-			m.clampCursor()
-			return m, true, "goal removed", nil
+		if len(active) == 0 {
+			break
+		}
+		if !m.confirmDelete {
+			m.confirmDelete = true
+			return m, false, "press d again to delete  ·  esc to cancel", nil
+		}
+		m.confirmDelete = false
+		i := m.cursor
+		removed := m.goals[i]
+		m.goals = append(m.goals[:i], m.goals[i+1:]...)
+		m.clampCursor()
+		m.deleted = &deletedGoal{goal: removed, index: i}
+		return m, true, "goal removed  ·  u to undo", nil
+	case "u":
+		if m.deleted != nil {
+			idx := m.deleted.index
+			if idx > len(m.goals) {
+				idx = len(m.goals)
+			}
+			tail := append([]storage.Goal{m.deleted.goal}, m.goals[idx:]...)
+			m.goals = append(m.goals[:idx], tail...)
+			m.cursor = idx
+			m.deleted = nil
+			return m, true, "goal restored", nil
 		}
 	case "c":
 		if m.hasCompleted() {
