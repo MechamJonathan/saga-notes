@@ -20,6 +20,7 @@ type weeklyModel struct {
 	heatMetric int // 0=combined 1=habits 2=mood 3=energy
 	monthDays  []storage.DayEntry
 	monthStart time.Time
+	notes      [7]string
 
 	completedGoals []storage.CompletedGoal
 }
@@ -42,6 +43,14 @@ func loadWeekDays(anchor time.Time) [7]storage.DayEntry {
 	return days
 }
 
+func loadWeekNotes(anchor time.Time) [7]string {
+	var notes [7]string
+	for i := range 7 {
+		notes[i], _ = storage.LoadNote(anchor.AddDate(0, 0, i))
+	}
+	return notes
+}
+
 func newWeekly(styles Styles, nonNegs []string, today time.Time) weeklyModel {
 	anchor := weekStart(today)
 	wd := today.Weekday()
@@ -58,6 +67,7 @@ func newWeekly(styles Styles, nonNegs []string, today time.Time) weeklyModel {
 		styles:     styles,
 		monthDays:  monthDays,
 		monthStart: monthStart,
+		notes:      loadWeekNotes(anchor),
 	}
 }
 
@@ -66,6 +76,7 @@ func (m weeklyModel) shiftWeek(delta int) weeklyModel {
 	m.anchor = m.anchor.AddDate(0, 0, delta*7)
 	m.days = loadWeekDays(m.anchor)
 	m.monthDays, m.monthStart = loadMonthDays(m.anchor)
+	m.notes = loadWeekNotes(m.anchor)
 	return m
 }
 
@@ -389,10 +400,43 @@ func (m weeklyModel) renderCompletedGoals() string {
 	return b.String()
 }
 
+func (m weeklyModel) renderNotePreview(width int) string {
+	const maxLines = 8
+
+	var b strings.Builder
+	day := m.anchor.AddDate(0, 0, m.cursor)
+	b.WriteString(m.styles.Title.Render(strings.ToUpper(day.Format("Mon, Jan 2"))))
+	b.WriteString("\n")
+
+	note := strings.TrimSpace(m.notes[m.cursor])
+	if note == "" {
+		b.WriteString(m.styles.Faint.Render("  (no note)"))
+		b.WriteString("\n")
+		return b.String()
+	}
+
+	wrapped := lipgloss.NewStyle().Width(width).Render(note)
+	lines := strings.Split(wrapped, "\n")
+	truncated := len(lines) > maxLines
+	if truncated {
+		lines = lines[:maxLines]
+	}
+	b.WriteString(strings.Join(lines, "\n"))
+	if truncated {
+		b.WriteString("\n")
+		b.WriteString(m.styles.Faint.Render("  ..."))
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
 func (m weeklyModel) view(width, _ int, now time.Time) string {
 	today := truncDay(now)
 	left := lipgloss.NewStyle().PaddingRight(6).Render(m.renderWeeklyStats(today))
-	right := m.renderHeatMap(today)
+	right := lipgloss.JoinVertical(lipgloss.Left,
+		m.renderNotePreview(width/3),
+		m.renderHeatMap(today),
+	)
 	joined := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 	return lipgloss.Place(width, lipgloss.Height(joined), lipgloss.Center, lipgloss.Top, joined)
 }
