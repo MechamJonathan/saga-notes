@@ -11,6 +11,8 @@ func renderFooter(s Styles, m model) string {
 	var hints []string
 
 	switch {
+	case m.showSearch:
+		hints = []string{"↑↓ move", "enter jump", "esc cancel"}
 	case m.daily.mode == dailyEditNonNeg:
 		hints = []string{"enter save", "esc cancel"}
 	case m.daily.editing():

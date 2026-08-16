@@ -79,6 +79,10 @@ func (m model) View() string {
 		return renderHelp(m.styles, m.width, m.height)
 	}
 
+	if m.showSearch {
+		return m.search.view(m.width, m.height)
+	}
+
 	header := renderHeaderPanel(m.styles, m.now, m.width)
 	footer := m.footerLine()
 

@@ -20,6 +20,7 @@ var helpSections = []helpSection{
 			{"t", "jump to today"},
 			{"w", "refresh weather"},
 			{"T", "cycle theme  (teal / amber)"},
+			{"/", "search notes"},
 			{"?", "toggle this help"},
 			{"q", "quit"},
 		},
@@ -50,7 +51,7 @@ var helpSections = []helpSection{
 	{
 		title: "WEEKLY VIEW  (tab twice)",
 		rows: [][2]string{
-			{"↑↓ / j k", "navigate days"},
+			{"↑↓ / j k", "navigate days  (right panel shows that day's note)"},
 			{"enter", "open selected day in journal"},
 			{"[ / ]", "previous / next week"},
 			{"t", "jump to current week"},
