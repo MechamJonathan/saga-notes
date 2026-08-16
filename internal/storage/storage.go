@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -256,4 +257,36 @@ func SaveNote(day time.Time, body string) error {
 		return err
 	}
 	return os.WriteFile(path, []byte(body), 0o644)
+}
+
+// ListNotes returns all days that have a saved note, in chronological order.
+func ListNotes() ([]time.Time, error) {
+	base, err := Dir()
+	if err != nil {
+		return nil, err
+	}
+	dir := filepath.Join(base, "notes")
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var days []time.Time
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasSuffix(name, ".md") {
+			continue
+		}
+		t, err := time.Parse(DateKey, strings.TrimSuffix(name, ".md"))
+		if err != nil {
+			continue
+		}
+		days = append(days, t)
+	}
+	return days, nil
 }

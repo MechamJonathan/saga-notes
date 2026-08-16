@@ -39,8 +39,10 @@ type model struct {
 
 	weather weatherState
 
-	statusMsg string
-	showHelp  bool
+	statusMsg  string
+	showHelp   bool
+	showSearch bool
+	search     searchModel
 }
 
 // New builds the root model from loaded config and state.
@@ -67,6 +69,7 @@ func New(cfg config.Config, state storage.State) model {
 		goals:    newGoals(styles, state.Goals),
 		daily:    newDaily(styles, nonNegs, streaks, day, entry, note),
 		weekly:   newWeekly(styles, nonNegs, now),
+		search:   newSearch(styles),
 	}
 	m.weekly.completedGoals = state.CompletedGoals
 	m.weather = weatherState{
@@ -208,6 +211,31 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Search overlay intercepts all keys; esc dismisses, enter/↑↓ navigate results.
+	if m.showSearch {
+		switch msg.String() {
+		case "esc":
+			m.showSearch = false
+			m.search.input.Blur()
+			return m, nil
+		default:
+			var day time.Time
+			var cmd tea.Cmd
+			m.search, day, cmd = m.search.update(msg)
+			if !day.IsZero() {
+				m.selected = day
+				m.focus = focusNotes
+				body, _ := storage.LoadNote(m.selected)
+				entry, _ := storage.LoadDay(m.selected)
+				m.daily = m.daily.setDay(m.selected, entry, body)
+				m.layoutDaily()
+				m.showSearch = false
+				m.search.input.Blur()
+			}
+			return m, cmd
+		}
+	}
+
 	if msg.String() == "?" {
 		m.showHelp = true
 		return m, nil
@@ -238,6 +266,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
+	case "/":
+		var cmd tea.Cmd
+		m.search, cmd = m.search.open()
+		m.showSearch = true
+		return m, cmd
 	case "ctrl+c", "q":
 		return m, tea.Quit
 	case "tab":
