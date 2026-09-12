@@ -290,3 +290,35 @@ func ListNotes() ([]time.Time, error) {
 	}
 	return days, nil
 }
+
+// ListDays returns all days that have a saved structured entry, in chronological order.
+func ListDays() ([]time.Time, error) {
+	base, err := Dir()
+	if err != nil {
+		return nil, err
+	}
+	dir := filepath.Join(base, "days")
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var days []time.Time
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		t, err := time.Parse(DateKey, strings.TrimSuffix(name, ".json"))
+		if err != nil {
+			continue
+		}
+		days = append(days, t)
+	}
+	return days, nil
+}

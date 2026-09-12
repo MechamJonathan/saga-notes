@@ -74,6 +74,7 @@ Keys:
   [ / ]      previous / next day
   t          jump to today
   w          refresh weather
+  x          export journal to Markdown (~/)
   q          quit
 `)
 }

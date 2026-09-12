@@ -21,6 +21,7 @@ var helpSections = []helpSection{
 			{"w", "refresh weather"},
 			{"T", "cycle theme  (teal / amber)"},
 			{"/", "search notes"},
+			{"x", "export journal to Markdown  (~/)"},
 			{"?", "toggle this help"},
 			{"q", "quit"},
 		},
