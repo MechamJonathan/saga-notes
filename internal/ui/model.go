@@ -3,9 +3,11 @@ package ui
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"saga-notes/internal/config"
+	"saga-notes/internal/export"
 	"saga-notes/internal/storage"
 	"saga-notes/internal/weather"
 
@@ -94,6 +96,10 @@ type forecastMsg struct {
 	err  error
 }
 type statusClearMsg struct{}
+type exportDoneMsg struct {
+	path string
+	err  error
+}
 
 func statusClearCmd() tea.Cmd {
 	return tea.Tick(3*time.Second, func(time.Time) tea.Msg { return statusClearMsg{} })
@@ -191,6 +197,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case statusClearMsg:
 		m.statusMsg = ""
 		return m, nil
+
+	case exportDoneMsg:
+		if msg.err != nil {
+			m.statusMsg = "export failed: " + msg.err.Error()
+		} else {
+			m.statusMsg = "exported → " + msg.path
+		}
+		return m, statusClearCmd()
 
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
@@ -321,6 +335,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		_ = config.Save(m.cfg)
 		m.statusMsg = "theme: " + m.cfg.Theme
 		return m, statusClearCmd()
+	case "x":
+		nonNegs := m.state.NonNegotiables
+		if len(nonNegs) == 0 {
+			nonNegs = m.cfg.Journal.NonNegotiables
+		}
+		state := m.state
+		return m, exportCmd(state, nonNegs)
 	}
 
 	if m.focus == focusWeek {
@@ -428,6 +449,17 @@ func fetchForecastCmd(cfg config.WeatherConfig) tea.Cmd {
 		defer cancel()
 		days, err := weather.FetchForecast(ctx, cfg)
 		return forecastMsg{days: days, err: err}
+	}
+}
+
+func exportCmd(state storage.State, nonNegs []string) tea.Cmd {
+	return func() tea.Msg {
+		dir, err := os.UserHomeDir()
+		if err != nil {
+			return exportDoneMsg{err: err}
+		}
+		path, err := export.ToMarkdown(state, nonNegs, dir)
+		return exportDoneMsg{path: path, err: err}
 	}
 }
 
