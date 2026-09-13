@@ -102,6 +102,16 @@ func (m dailyModel) editing() bool {
 	return m.mode == dailyEditNote || m.mode == dailyEditNonNeg
 }
 
+// wordCount returns the number of words in the current note.
+// When the textarea is active it reads the live buffer; otherwise m.note.
+func (m dailyModel) wordCount() int {
+	text := m.note
+	if m.mode == dailyEditNote {
+		text = m.textarea.Value()
+	}
+	return len(strings.Fields(text))
+}
+
 func (m dailyModel) setDay(day time.Time, entry storage.DayEntry, note string) dailyModel {
 	entry = entry.EnsureNonNegs(len(m.nonNegs))
 	m.day = day
