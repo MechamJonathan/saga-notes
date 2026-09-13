@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -15,6 +16,9 @@ func renderFooter(s Styles, m model) string {
 		hints = []string{"↑↓ move", "enter jump", "esc cancel"}
 	case m.daily.mode == dailyEditNonNeg:
 		hints = []string{"enter save", "esc cancel"}
+	case m.daily.mode == dailyEditNote:
+		wc := m.daily.wordCount()
+		hints = []string{"esc save & exit", fmt.Sprintf("%d words", wc)}
 	case m.daily.editing():
 		hints = []string{"esc save & exit"}
 	case m.goals.editing():
@@ -26,7 +30,8 @@ func renderFooter(s Styles, m model) string {
 		nn := len(m.daily.nonNegs)
 		switch {
 		case m.daily.cursor == mc:
-			hints = []string{"tab goals", "i write", "e $EDITOR", "↑↓ scroll", "[ ] day", "t today", "w refresh", "? help", "q quit"}
+			wc := m.daily.wordCount()
+			hints = []string{"tab goals", "i write", "e $EDITOR", "↑↓ scroll", "[ ] day", "t today", "w refresh", "? help", "q quit", fmt.Sprintf("%d words", wc)}
 		case m.daily.cursor == nn || m.daily.cursor == nn+1:
 			hints = []string{"tab goals", "1-5 rating", "↑↓ move", "[ ] day", "t today", "? help", "q quit"}
 		default:
